@@ -14,6 +14,7 @@ import { CRDsView } from "./crds/views";
 import { PortForwardsView } from "./portforward/PortForwardsView";
 import { ClusterOverview } from "./cluster/ClusterOverview";
 import { HelmReleasesView } from "./helm/ReleasesView";
+import { HelmChartsView } from "./helm/ChartsView";
 
 export type ViewProps = { context: string; namespaces: string[]; navigate?: (key: string) => void };
 
@@ -68,5 +69,6 @@ export const VIEWS: Record<string, ComponentType<ViewProps>> = {
 
   "Custom Resources/Definitions": CRDsView,
 
+  "Helm/Charts": HelmChartsView,
   "Helm/Releases": HelmReleasesView,
 };

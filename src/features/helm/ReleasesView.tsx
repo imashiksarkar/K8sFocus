@@ -2,7 +2,7 @@ import "@/lib/monaco";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Editor from "@monaco-editor/react";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
-import { History, Loader2, RefreshCw, Trash2, X } from "lucide-react";
+import { ArrowUpCircle, History, Loader2, RefreshCw, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,8 @@ import { ConfirmAction } from "@/components/editor/ConfirmAction";
 import { useCluster } from "@/lib/cluster-context";
 import { age } from "@/lib/k8s";
 import { cn } from "@/lib/utils";
-import { helm, helmDate, type HelmRelease, type HelmRevision } from "./api";
+import { chartBaseName, helm, helmCharts, helmDate, type HelmRelease, type HelmRevision } from "./api";
+import { InstallDialog, type InstallTarget } from "./InstallDialog";
 
 const POLL = 10_000;
 const c = createColumnHelper<HelmRelease>();
@@ -84,6 +85,15 @@ function ReleasePanel({ rel, onClose, onChanged }: { rel: HelmRelease; onClose: 
   const [uninstall, setUninstall] = useState(false);
   const [typed, setTyped] = useState("");
   const [rollbackTo, setRollbackTo] = useState<HelmRevision>();
+  const [upgrade, setUpgrade] = useState<InstallTarget>();
+
+  async function openUpgrade() {
+    // helm doesn't record the repo; guess "<repo>/<chart>" from local repos (editable in the dialog)
+    const base = chartBaseName(rel.chart);
+    const hits = await helmCharts.search(base).catch(() => []);
+    const guess = hits.find((h) => h.name.endsWith(`/${base}`))?.name ?? `REPO/${base}`;
+    setUpgrade({ mode: "upgrade", chart: guess, name: rel.name, namespace: rel.namespace });
+  }
 
   useEffect(() => {
     setText(undefined); setError(undefined);
@@ -101,6 +111,7 @@ function ReleasePanel({ rel, onClose, onChanged }: { rel: HelmRelease; onClose: 
       <header className="flex h-12 items-center gap-2 border-b px-4">
         <span className="text-xs text-muted-foreground">Release</span>
         <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">{rel.name}</h2>
+        <Button variant="ghost" size="icon" className="size-7" title="Upgrade (edit values / version)" onClick={openUpgrade}><ArrowUpCircle /></Button>
         <Button variant="ghost" size="icon" className="size-7 hover:text-destructive" disabled={readOnly}
           title={readOnly ? "Cluster is read-only" : "Uninstall"} onClick={() => { setTyped(""); setUninstall(true); }}><Trash2 /></Button>
         <Button variant="ghost" size="icon" className="size-7" onClick={onClose}><X /></Button>
@@ -163,6 +174,7 @@ function ReleasePanel({ rel, onClose, onChanged }: { rel: HelmRelease; onClose: 
         confirmLabel="Roll back"
         onConfirm={async () => { await helm.rollback(context, rel.namespace, rel.name, rollbackTo!.revision); onChanged(); }}
       />
+      <InstallDialog target={upgrade} onClose={() => setUpgrade(undefined)} onDone={onChanged} />
     </aside>
   );
 }
