@@ -15,33 +15,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Job-level `if` can't see `matrix`, so build the filtered matrix here.
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - id: m
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          all='[
+            {"name":"macos-arm64","family":"macos","os":"macos-latest","target":"aarch64-apple-darwin","bundles":"dmg,app"},
+            {"name":"macos-x64","family":"macos","os":"macos-latest","target":"x86_64-apple-darwin","bundles":"dmg,app"},
+            {"name":"linux-x64","family":"linux","os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","bundles":"deb,appimage,rpm"},
+            {"name":"windows-x64","family":"windows","os":"windows-latest","target":"x86_64-pc-windows-msvc","bundles":"nsis,msi"}
+          ]'
+          sel=$(echo "$all" | jq -c --arg p "$PLATFORMS" '[.[] | select($p == "all" or .family == $p)]')
+          echo "matrix={\"include\":$sel}" >> "$GITHUB_OUTPUT"
+          echo "$sel" | jq .
+
   build:
     name: ${{ matrix.name }}
-    if: inputs.platforms == 'all' || inputs.platforms == matrix.family
+    needs: plan
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - name: macos-arm64
-            family: macos
-            os: macos-latest
-            target: aarch64-apple-darwin
-            bundles: dmg,app
-          - name: macos-x64
-            family: macos
-            os: macos-latest
-            target: x86_64-apple-darwin
-            bundles: dmg,app
-          - name: linux-x64
-            family: linux
-            os: ubuntu-22.04 # older glibc => runs on more distros
-            target: x86_64-unknown-linux-gnu
-            bundles: deb,appimage,rpm
-          - name: windows-x64
-            family: windows
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bundles: nsis,msi
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
