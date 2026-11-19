@@ -108,6 +108,22 @@ export function ResourceTable<T>({
     });
   }, [items, getRowId]);
 
+  // ⌘F / Ctrl+F focuses the search box (unless typing in an editor/terminal)
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+        const t = e.target as HTMLElement;
+        if (t.closest(".monaco-editor, .xterm")) return;
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const rows = table.getRowModel().rows;
   const scrollRef = useRef<HTMLDivElement>(null);
   const virtual = useVirtualizer({
@@ -128,9 +144,10 @@ export function ResourceTable<T>({
         <div className="relative">
           <Search className="absolute top-2 left-2 size-4 text-muted-foreground" />
           <input
+            ref={searchRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search…"
+            placeholder="Search… (⌘F)"
             className="h-8 w-64 rounded-md border bg-transparent pr-2 pl-8 text-sm outline-none focus:border-primary"
           />
         </div>

@@ -12,9 +12,17 @@ export type ClusterCtx = {
   openLogs: (pod: KObject, container?: string) => void;
   /** Open an interactive shell tab (blocked in Rust when read-only). */
   openShell: (pod: KObject, container?: string) => void;
+  /** UID to select in the next ResourceView that contains it (from the command palette). */
+  focusUid?: string;
+  clearFocus: () => void;
 };
 
 export const ClusterContext = createContext<ClusterCtx | null>(null);
+
+/** Optional variant for components that may render outside a cluster. */
+export function useClusterMaybe() {
+  return useContext(ClusterContext);
+}
 
 export function useCluster() {
   const c = useContext(ClusterContext);

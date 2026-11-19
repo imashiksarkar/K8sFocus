@@ -81,7 +81,7 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 - [~] **T26 Helm charts.** Manage repos, search charts, install, and upgrade with a values editor.
 
 ### Phase 7: Polish and distribution
-- [ ] **T27 Command palette (⌘K) and keyboard shortcuts.**
+- [~] **T27 Command palette (⌘K) and keyboard shortcuts.**
 - [ ] **T28 Preferences screen.**
 - [ ] **T29 Native app menu and window state persistence.**
 - [ ] **T30 App icon and branding.**

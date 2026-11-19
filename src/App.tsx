@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Plus, TerminalSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { Hotbar } from "@/features/Hotbar";
 import { AddClusterDialog } from "@/features/AddClusterDialog";
 import { VIEWS } from "@/features/registry";
 import { CustomResourceView } from "@/features/crds/views";
+import { CommandPalette, type PaletteAction } from "@/features/palette/CommandPalette";
 import { useWatch } from "@/lib/useWatch";
 import { Dock } from "@/components/dock/Dock";
 import type { DockTab } from "@/components/dock/types";
@@ -35,6 +36,9 @@ export default function App() {
   const [deleteTarget, setDeleteTarget] = useState<ObjRef>();
   // T17: bottom dock
   const [dockTabs, setDockTabs] = useState<DockTab[]>([]);
+  // T27: command palette + shortcuts
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [focusUid, setFocusUid] = useState<string>();
   const [dockActive, setDockActive] = useState<string>();
   const [dockOpen, setDockOpen] = useState(true);
   const [dockHeight, setDockHeight] = useState(() => {
@@ -145,6 +149,34 @@ export default function App() {
     setCluster(c);
     setActive("Cluster/Overview");
   }
+
+  const actions: PaletteAction[] = [
+    { id: "terminal", label: "New local terminal", shortcut: "⌘T", run: openTerminal },
+    { id: "dock", label: dockOpen ? "Hide dock" : "Show dock", shortcut: "⌘J", run: () => setDockOpen((o) => !o), disabled: !dockTabs.length },
+    { id: "create", label: "Create resource from YAML", shortcut: "⌘N", run: () => setEditorTarget({ mode: "create" }), disabled: !cluster },
+    { id: "add", label: "Add cluster…", run: () => setAddOpen(true) },
+    { id: "overview", label: "Go to cluster overview", run: () => setActive("Cluster/Overview"), disabled: !cluster },
+  ];
+
+  // global shortcuts (skip when typing in an editor/terminal, except ⌘K)
+  const shortcutRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  shortcutRef.current = (e: KeyboardEvent) => {
+    const mod = e.metaKey || e.ctrlKey;
+    if (!mod) return;
+    const k = e.key.toLowerCase();
+    const inEditor = !!(e.target as HTMLElement).closest?.(".monaco-editor, .xterm");
+    if (k === "k") { e.preventDefault(); setPaletteOpen((o) => !o); return; }
+    if (inEditor) return;
+    if (k === "j" && dockTabs.length) { e.preventDefault(); setDockOpen((o) => !o); }
+    else if (k === "t") { e.preventDefault(); openTerminal(); }
+    else if (k === "n" && cluster) { e.preventDefault(); setEditorTarget({ mode: "create" }); }
+    else if (/^[1-9]$/.test(k) && saved[Number(k) - 1]) { e.preventDefault(); selectSaved(saved[Number(k) - 1]); }
+  };
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => shortcutRef.current(e);
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -267,6 +299,7 @@ export default function App() {
               <ClusterContext.Provider value={{
                 context: cluster.context, readOnly,
                 openEditor: setEditorTarget, confirmDelete: setDeleteTarget, openLogs, openShell,
+                focusUid, clearFocus: () => setFocusUid(undefined),
               }}>
                 {(() => {
                   if (activeCrd) {
@@ -318,10 +351,18 @@ export default function App() {
               Dock ({dockTabs.length})
             </button>
           )}
-          <span className="ml-auto">v0.1.0</span>
+          <button className="ml-auto hover:text-foreground" onClick={() => setPaletteOpen(true)}>⌘K Command palette</button>
+          <span>v0.1.0</span>
         </footer>
       </div>
       <AddClusterDialog open={addOpen} onOpenChange={setAddOpen} onConnected={onConnected} />
+      <CommandPalette
+        open={paletteOpen} onOpenChange={setPaletteOpen}
+        context={cluster?.context} clusters={saved} crds={crds} actions={actions}
+        onNavigate={(key) => { setActive(key); const g = key.split("/")[0]; if (g !== active.split("/")[0]) setOpen(g); }}
+        onCluster={selectSaved}
+        onPickResource={(page, o) => { setActive(page); setOpen(page.split("/")[0]); setFocusUid(o.metadata.uid); }}
+      />
       {cluster && (
         <>
           <YamlEditor context={cluster.context} target={editorTarget} readOnly={readOnly} onClose={() => setEditorTarget(undefined)} />

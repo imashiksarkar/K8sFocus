@@ -1,4 +1,5 @@
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useClusterMaybe } from "@/lib/cluster-context";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import { ResourceTable } from "@/components/resource-table/ResourceTable";
 import { kobjectId, searchKObject } from "@/components/resource-table/columns";
@@ -26,6 +27,15 @@ export function ResourceView({ context, namespaces, resource, columns, defaultSo
   const [selected, setSelected] = useState<string>();
   const close = useCallback(() => setSelected(undefined), []);
   const obj = selected ? items.find((o) => o.metadata.uid === selected) : undefined;
+
+  // palette "jump to resource": select it once it shows up in this view
+  const cluster = useClusterMaybe();
+  useEffect(() => {
+    if (cluster?.focusUid && items.some((o) => o.metadata.uid === cluster.focusUid)) {
+      setSelected(cluster.focusUid);
+      cluster.clearFocus();
+    }
+  }, [cluster, items]);
 
   return (
     <div className="flex min-h-0 flex-1">
