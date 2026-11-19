@@ -7,6 +7,9 @@ import { CronJobsView, JobsView } from "./workloads/batch";
 import { WorkloadsOverview } from "./workloads/overview";
 import { NodesView } from "./nodes/NodesView";
 import * as Config from "./config/views";
+import * as Net from "./network/views";
+import * as Storage from "./storage/views";
+import * as Cluster from "./cluster/views";
 
 export type ViewProps = { context: string; namespaces: string[]; navigate?: (key: string) => void };
 
@@ -36,4 +39,24 @@ export const VIEWS: Record<string, ComponentType<ViewProps>> = {
   "Config/Leases": Config.LeasesView,
   "Config/Mutating Webhooks": Config.MutatingWebhooksView,
   "Config/Validating Webhooks": Config.ValidatingWebhooksView,
+
+  "Network/Services": Net.ServicesView,
+  "Network/Endpoints": Net.EndpointsView,
+  "Network/EndpointSlices": Net.EndpointSlicesView,
+  "Network/Ingresses": Net.IngressesView,
+  "Network/Ingress Classes": Net.IngressClassesView,
+  "Network/Network Policies": Net.NetworkPoliciesView,
+
+  "Storage/Persistent Volume Claims": Storage.PVCsView,
+  "Storage/Persistent Volumes": Storage.PVsView,
+  "Storage/Storage Classes": Storage.StorageClassesView,
+
+  "Namespaces/Namespaces": Cluster.NamespacesView,
+  "Events/Events": Cluster.EventsView,
+
+  "Access Control/Service Accounts": Cluster.ServiceAccountsView,
+  "Access Control/Cluster Roles": Cluster.ClusterRolesView,
+  "Access Control/Roles": Cluster.RolesView,
+  "Access Control/Cluster Role Bindings": Cluster.ClusterRoleBindingsView,
+  "Access Control/Role Bindings": Cluster.RoleBindingsView,
 };

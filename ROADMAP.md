@@ -60,8 +60,8 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 - [~] **T11 Jobs and CronJobs.** Trigger, suspend and resume.
 - [~] **T12 Nodes.** Cordon, uncordon and drain.
 - [~] **T13 Config views.** ConfigMaps, Secrets (base64 reveal), quotas, limits, HPA, PDB and the rest of the Config section.
-- [ ] **T14 Network and Storage views.**
-- [ ] **T15 Namespaces, Events, and the RBAC views.**
+- [~] **T14 Network and Storage views.**
+- [~] **T15 Namespaces, Events, and the RBAC views.**
 - [ ] **T16 CRDs and generic custom resource tables.**
 
 ### Phase 4: Dock and interactive features
