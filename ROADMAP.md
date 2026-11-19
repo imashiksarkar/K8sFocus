@@ -67,7 +67,7 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 ### Phase 4: Dock and interactive features
 - [~] **T17 Dock panel.** Resizable bottom panel with tabs.
 - [~] **T18 Pod logs.** Follow mode, choice of container, previous container's logs, search, timestamps and download.
-- [ ] **T19 Pod exec shell.** xterm.js connected to kube-rs `exec` over websocket, with terminal resize.
+- [~] **T19 Pod exec shell.** xterm.js connected to kube-rs `exec` over websocket, with terminal resize.
 - [ ] **T20 Local terminal.** A PTY (`portable-pty`) with `KUBECONFIG` and the current context set.
 - [ ] **T21 Port forwarding.** Forward from pods and services, plus a manager view where you can open the forwarded port in the browser.
 

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { PodDetails } from "./PodDetails";
 import { ResourceView } from "@/components/resource-view/ResourceView";
-import { ScrollText } from "lucide-react";
+import { ScrollText, SquareTerminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCluster } from "@/lib/cluster-context";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
@@ -72,7 +72,7 @@ export function PodsView({ context, namespaces }: { context: string; namespaces:
       resource={R.pods}
       columns={columns}
       details={(p) => <PodDetails pod={p} />}
-      actions={(p) => <LogsButton pod={p} />}
+      actions={(p) => <><ShellButton pod={p} /><LogsButton pod={p} /></>}
     />
   );
 }
@@ -82,6 +82,18 @@ function LogsButton({ pod }: { pod: KObject }) {
   return (
     <Button variant="ghost" size="icon" className="size-7" title="Logs" onClick={() => openLogs(pod)}>
       <ScrollText />
+    </Button>
+  );
+}
+
+function ShellButton({ pod }: { pod: KObject }) {
+  const { openShell, readOnly } = useCluster();
+  const running = pod.status?.phase === "Running";
+  return (
+    <Button variant="ghost" size="icon" className="size-7" disabled={readOnly || !running}
+      title={readOnly ? "Cluster is read-only (a shell can change the container)" : !running ? "Pod is not running" : "Shell"}
+      onClick={() => openShell(pod)}>
+      <SquareTerminal />
     </Button>
   );
 }

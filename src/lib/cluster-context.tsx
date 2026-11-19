@@ -10,6 +10,8 @@ export type ClusterCtx = {
   confirmDelete: (obj: ObjRef) => void;
   /** Open a logs tab in the dock for a pod (optionally a specific container). */
   openLogs: (pod: KObject, container?: string) => void;
+  /** Open an interactive shell tab (blocked in Rust when read-only). */
+  openShell: (pod: KObject, container?: string) => void;
 };
 
 export const ClusterContext = createContext<ClusterCtx | null>(null);

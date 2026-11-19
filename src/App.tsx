@@ -44,21 +44,26 @@ export default function App() {
     setDockHeight(h);
     try { localStorage.setItem("dockHeight", String(h)); } catch { /* ignore */ }
   }
-  function openLogs(pod: KObject, container?: string) {
+  function openPodTab(kind: "logs" | "shell", pod: KObject, container?: string) {
     if (!cluster) return;
     const containers = [
-      ...(pod.spec?.initContainers ?? []).map((c: any) => c.name),
+      ...(kind === "logs" ? (pod.spec?.initContainers ?? []).map((c: any) => c.name) : []),
       ...(pod.spec?.containers ?? []).map((c: any) => c.name),
     ];
     const c = container ?? pod.metadata.annotations?.["kubectl.kubernetes.io/default-container"] ?? pod.spec?.containers?.[0]?.name;
-    const id = `logs:${cluster.context}/${pod.metadata.namespace}/${pod.metadata.name}/${c}`;
+    // logs reuse an existing tab; every shell request opens a new session
+    const id = kind === "logs"
+      ? `logs:${cluster.context}/${pod.metadata.namespace}/${pod.metadata.name}/${c}`
+      : `shell:${cluster.context}/${pod.metadata.namespace}/${pod.metadata.name}/${c}/${Date.now()}`;
     setDockTabs((tabs) => tabs.some((t) => t.id === id) ? tabs : [...tabs, {
-      id, kind: "logs", title: `${pod.metadata.name}${containers.length > 1 ? ` · ${c}` : ""}`,
+      id, kind, title: `${kind === "shell" ? "sh: " : ""}${pod.metadata.name}${containers.length > 1 ? ` · ${c}` : ""}`,
       context: cluster.context, namespace: pod.metadata.namespace!, pod: pod.metadata.name, containers, container: c,
     }]);
     setDockActive(id);
     setDockOpen(true);
   }
+  const openLogs = (pod: KObject, container?: string) => openPodTab("logs", pod, container);
+  const openShell = (pod: KObject, container?: string) => openPodTab("shell", pod, container);
   function closeTab(id: string) {
     setDockTabs((tabs) => {
       const next = tabs.filter((t) => t.id !== id);
@@ -255,7 +260,7 @@ export default function App() {
             {cluster && (VIEWS[active] || activeCrd) ? (
               <ClusterContext.Provider value={{
                 context: cluster.context, readOnly,
-                openEditor: setEditorTarget, confirmDelete: setDeleteTarget, openLogs,
+                openEditor: setEditorTarget, confirmDelete: setDeleteTarget, openLogs, openShell,
               }}>
                 {(() => {
                   if (activeCrd) {

@@ -1,8 +1,9 @@
 import { useRef } from "react";
-import { ChevronDown, ChevronUp, ScrollText, X } from "lucide-react";
+import { ChevronDown, ChevronUp, ScrollText, SquareTerminal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LogsView } from "./LogsView";
+import { ShellView } from "./ShellView";
 import type { DockTab } from "./types";
 
 /** Resizable bottom dock with tabs (roadmap T17). Inactive tabs stay mounted so streams keep running. */
@@ -37,7 +38,7 @@ export function Dock({ tabs, active, open, height, onActivate, onClose, onToggle
               className={cn("group flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md px-2 py-1 text-xs",
                 t.id === active ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-secondary/60")}
               onClick={() => { onActivate(t.id); if (!open) onToggle(); }}>
-              <ScrollText className="size-3.5" />
+              {t.kind === "logs" ? <ScrollText className="size-3.5" /> : <SquareTerminal className="size-3.5" />}
               <span className="max-w-56 truncate" title={t.title}>{t.title}</span>
               <X className="size-3 opacity-50 hover:opacity-100" onClick={(e) => { e.stopPropagation(); onClose(t.id); }} />
             </div>
@@ -51,6 +52,7 @@ export function Dock({ tabs, active, open, height, onActivate, onClose, onToggle
         {tabs.map((t) => (
           <div key={t.id} className={cn("h-full", t.id !== active && "hidden")}>
             {t.kind === "logs" && <LogsView tab={t} />}
+            {t.kind === "shell" && <ShellView tab={t} />}
           </div>
         ))}
       </div>
