@@ -19,6 +19,8 @@ import { CustomResourceView } from "@/features/crds/views";
 import { CommandPalette, type PaletteAction } from "@/features/palette/CommandPalette";
 import { PreferencesDialog } from "@/features/prefs/PreferencesDialog";
 import { ShortcutsDialog } from "@/features/prefs/ShortcutsDialog";
+import { UpdateDialog } from "@/features/updates/UpdateDialog";
+import { getPrefs } from "@/lib/prefs";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -47,6 +49,13 @@ export default function App() {
   const [focusUid, setFocusUid] = useState<string>();
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  // T32: update checks (silent automatic check 5s after start; manual from menu/palette)
+  const [updateCheck, setUpdateCheck] = useState({ token: 0, manual: false });
+  useEffect(() => {
+    if (import.meta.env.DEV || !getPrefs().autoCheckUpdates) return;
+    const t = setTimeout(() => setUpdateCheck({ token: Date.now(), manual: false }), 5000);
+    return () => clearTimeout(t);
+  }, []);
   const [dockActive, setDockActive] = useState<string>();
   const [dockOpen, setDockOpen] = useState(true);
   const [dockHeight, setDockHeight] = useState(() => {
@@ -165,6 +174,7 @@ export default function App() {
     { id: "add", label: "Add cluster…", run: () => setAddOpen(true) },
     { id: "prefs", label: "Preferences…", shortcut: "⌘,", run: () => setPrefsOpen(true) },
     { id: "shortcuts", label: "Keyboard shortcuts", run: () => setShortcutsOpen(true) },
+    { id: "updates", label: "Check for updates…", run: () => setUpdateCheck({ token: Date.now(), manual: true }) },
     { id: "overview", label: "Go to cluster overview", run: () => setActive("Cluster/Overview"), disabled: !cluster },
   ];
 
@@ -180,6 +190,7 @@ export default function App() {
       case "add-cluster": setAddOpen(true); break;
       case "overview": if (cluster) setActive("Cluster/Overview"); break;
       case "shortcuts": setShortcutsOpen(true); break;
+      case "check-updates": setUpdateCheck({ token: Date.now(), manual: true }); break;
       case "roadmap": openUrl("https://github.com/imashiksarkar/K8sFocus").catch(() => {}); break;
     }
   };
@@ -386,12 +397,13 @@ export default function App() {
             </button>
           )}
           <button className="ml-auto hover:text-foreground" onClick={() => setPaletteOpen(true)}>⌘K Command palette</button>
-          <span>v0.1.0</span>
+          <span>v{__APP_VERSION__}</span>
         </footer>
       </div>
       <AddClusterDialog open={addOpen} onOpenChange={setAddOpen} onConnected={onConnected} />
       <PreferencesDialog open={prefsOpen} onOpenChange={setPrefsOpen} />
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <UpdateDialog checkToken={updateCheck.token} manual={updateCheck.manual} />
       <CommandPalette
         open={paletteOpen} onOpenChange={setPaletteOpen}
         context={cluster?.context} clusters={saved} crds={crds} actions={actions}

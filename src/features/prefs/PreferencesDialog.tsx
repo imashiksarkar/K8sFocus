@@ -79,6 +79,13 @@ export function PreferencesDialog({ open, onOpenChange, onKubeconfigChanged }: {
             </div>
           </Row>
 
+          <Row label="Updates" hint="Checks GitHub Releases on startup. You're always asked before installing.">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={p.autoCheckUpdates} onChange={(e) => set("autoCheckUpdates", e.target.checked)} className="accent-[var(--primary)]" />
+              Check for updates automatically
+            </label>
+          </Row>
+
           <Row label="Kubeconfig" hint="$KUBECONFIG or ~/.kube/config is always loaded. Extra files/folders are merged in.">
             <ul className="space-y-1">
               {p.kubeconfigPaths.map((path, i) => (

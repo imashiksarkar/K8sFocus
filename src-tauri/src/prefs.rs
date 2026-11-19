@@ -22,6 +22,8 @@ pub struct Prefs {
     pub helm_poll_secs: u32,
     /// "dark" | "light" | "system"
     pub theme: String,
+    /// Check GitHub Releases for a new version on startup.
+    pub auto_check_updates: bool,
 }
 
 impl Default for Prefs {
@@ -34,6 +36,7 @@ impl Default for Prefs {
             metrics_interval_secs: 15,
             helm_poll_secs: 10,
             theme: "dark".into(),
+            auto_check_updates: true,
         }
     }
 }

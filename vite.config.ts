@@ -6,7 +6,10 @@ import tailwindcss from "@tailwindcss/vite";
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
+import tauriConf from "./src-tauri/tauri.conf.json";
+
 export default defineConfig(() => ({
+  define: { __APP_VERSION__: JSON.stringify(tauriConf.version) },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: { "@": new URL("./src", import.meta.url).pathname },

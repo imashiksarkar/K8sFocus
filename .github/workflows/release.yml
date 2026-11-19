@@ -1,0 +1,88 @@
+name: Release
+
+# Manual. Builds all platforms, signs updater artifacts, and creates a DRAFT GitHub release
+# (tag v<version from tauri.conf.json>) with installers + latest.json for the in-app updater.
+# Review the draft on GitHub and click "Publish" — only published releases are seen by the updater.
+#
+# Required repo secrets:
+#   TAURI_SIGNING_PRIVATE_KEY           contents of ~/.tauri/k8sfocus.key
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  its password (may be empty)
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "Release notes (shown in the in-app update dialog)"
+        type: string
+        default: "See the assets below to download K8sFocus."
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Updater public key configured
+        run: |
+          if grep -q REPLACE_WITH_UPDATER_PUBLIC_KEY src-tauri/tauri.conf.json; then
+            echo "::error::Set plugins.updater.pubkey in src-tauri/tauri.conf.json first (see README → Releasing)."
+            exit 1
+          fi
+      - name: Signing key secret present
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then echo "::error::Missing secret TAURI_SIGNING_PRIVATE_KEY"; exit 1; fi
+
+  release:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            args: --target aarch64-apple-darwin
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            args: --target x86_64-apple-darwin
+            target: x86_64-apple-darwin
+          - os: ubuntu-22.04
+            args: ""
+            target: ""
+          - os: windows-latest
+            args: ""
+            target: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux system deps
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf build-essential libssl-dev
+
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: release-${{ matrix.os }}-${{ matrix.target }}
+      - run: bun install --frozen-lockfile
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: v__VERSION__
+          releaseName: K8sFocus v__VERSION__
+          releaseBody: ${{ inputs.notes }}
+          releaseDraft: true
+          prerelease: false
+          tauriScript: bun run tauri
+          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json

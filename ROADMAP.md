@@ -85,5 +85,5 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 - [~] **T28 Preferences screen.**
 - [~] **T29 Native app menu and window state persistence.**
 - [~] **T30 App icon and branding.**
-- [ ] **T31 macOS code signing and notarization in CI (needs an Apple Developer account), and Windows signing (optional).**
-- [ ] **T32 Auto-updater.** Uses `tauri-plugin-updater` with GitHub Releases.
+- [-] **T31 Code signing — skipped (no Apple Developer account).** macOS builds are ad-hoc signed (`signingIdentity: "-"`). Users open the app the first time with right-click → Open, or System Settings → Privacy & Security → Open Anyway. Revisit if an Apple account is added later.
+- [~] **T32 Auto-updater.** Uses `tauri-plugin-updater` with GitHub Releases.

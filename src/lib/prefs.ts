@@ -9,11 +9,12 @@ export type Prefs = {
   metricsIntervalSecs: number;
   helmPollSecs: number;
   theme: "dark" | "light" | "system";
+  autoCheckUpdates: boolean;
 };
 
 export const DEFAULT_PREFS: Prefs = {
   kubeconfigPaths: [], helmPath: "", shell: "", terminalFontSize: 12,
-  metricsIntervalSecs: 15, helmPollSecs: 10, theme: "dark",
+  metricsIntervalSecs: 15, helmPollSecs: 10, theme: "dark", autoCheckUpdates: true,
 };
 
 let current: Prefs = DEFAULT_PREFS;

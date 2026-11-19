@@ -38,8 +38,21 @@
     "category": "DeveloperTool",
     "shortDescription": "Desktop Kubernetes client",
     "macOS": {
-      "minimumSystemVersion": "11.0"
-    }
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": "-"
+    },
+    "homepage": "https://github.com/imashiksarkar/K8sFocus"
   },
-  "mainBinaryName": "K8sFocus"
+  "mainBinaryName": "K8sFocus",
+  "plugins": {
+    "updater": {
+      "pubkey": "REPLACE_WITH_UPDATER_PUBLIC_KEY",
+      "endpoints": [
+        "https://github.com/imashiksarkar/K8sFocus/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
 }
