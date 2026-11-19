@@ -43,8 +43,8 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 - [ ] **T0.1 First local build.** Install Rust, run `bun run tauri dev`, then build a `.dmg` with `bun run tauri build`. Trigger the GitHub "Build installers" workflow once.
 
 ### Phase 1: Connecting to clusters
-- [ ] **T1 Kubeconfig loader (Rust).** Parse the kubeconfig files, list contexts and send them to the UI. *Accept:* every context in `kubectl config get-contexts` appears in the UI.
-- [ ] **T2 Connect to a cluster.** Build a `kube::Client` for each context, run a health check and show the server version. Support exec auth plugins (EKS `aws`, GKE `gke-gcloud-auth-plugin`, AKS `kubelogin`). macOS GUI apps don't inherit the shell `PATH`, so fix it by resolving the login shell `PATH`. *Accept:* connect to kind plus one cloud cluster.
+- [~] **T1 Kubeconfig loader (Rust).** Parse the kubeconfig files, list contexts and send them to the UI. *Accept:* every context in `kubectl config get-contexts` appears in the UI.
+- [~] **T2 Connect to a cluster.** Build a `kube::Client` for each context, run a health check and show the server version. Support exec auth plugins (EKS `aws`, GKE `gke-gcloud-auth-plugin`, AKS `kubelogin`). macOS GUI apps don't inherit the shell `PATH`, so fix it by resolving the login shell `PATH`. *Accept:* connect to kind plus one cloud cluster.
 - [ ] **T3 Hotbar and cluster catalog.** Pin clusters, rename them, set an icon, save to the app config dir, and switch between clusters.
 - [ ] **T4 Namespace selector.** Choose one, several or all namespaces. Keep the selection per cluster.
 

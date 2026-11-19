@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronRight, Plus, Settings2, TerminalSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { NAV } from "@/components/layout/nav";
 import { cn } from "@/lib/utils";
+import { k8s, type ClusterInfo } from "@/lib/k8s";
+import { AddClusterDialog } from "@/features/AddClusterDialog";
+import { PodsView } from "@/features/PodsView";
 
 /**
  * App shell skeleton (Task T0). Layout mirrors Lens:
@@ -15,6 +18,24 @@ import { cn } from "@/lib/utils";
 export default function App() {
   const [open, setOpen] = useState<string>("Workloads");
   const [active, setActive] = useState("Workloads/Pods");
+  const [addOpen, setAddOpen] = useState(false);
+  const [clusters, setClusters] = useState<ClusterInfo[]>([]);
+  const [cluster, setCluster] = useState<ClusterInfo>();
+  const [namespaces, setNamespaces] = useState<string[]>([]);
+  const [namespace, setNamespace] = useState("");
+
+  useEffect(() => {
+    setNamespaces([]);
+    setNamespace("");
+    if (cluster) k8s.listNamespaces(cluster.context).then(setNamespaces).catch(() => {});
+  }, [cluster]);
+
+  function onConnected(c: ClusterInfo) {
+    setClusters((cs) => (cs.some((x) => x.context === c.context) ? cs : [...cs, c]));
+    setCluster(c);
+    setActive("Workloads/Pods");
+    setOpen("Workloads");
+  }
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -25,9 +46,25 @@ export default function App() {
             <div className="flex size-9 items-center justify-center rounded-md bg-primary font-bold text-primary-foreground">
               K
             </div>
+            {clusters.map((c) => (
+              <Tooltip key={c.context}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setCluster(c)}
+                    className={cn(
+                      "flex size-9 items-center justify-center rounded-md bg-secondary text-xs font-semibold uppercase",
+                      cluster?.context === c.context && "ring-2 ring-primary",
+                    )}
+                  >
+                    {c.context.slice(0, 2)}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">{c.context}</TooltipContent>
+              </Tooltip>
+            ))}
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon"><Plus /></Button>
+                <Button variant="ghost" size="icon" onClick={() => setAddOpen(true)}><Plus /></Button>
               </TooltipTrigger>
               <TooltipContent side="right">Add cluster</TooltipContent>
             </Tooltip>
@@ -39,8 +76,8 @@ export default function App() {
           {/* Cluster sidebar */}
           <nav className="flex w-60 flex-col border-r bg-sidebar">
             <div className="flex h-12 items-center gap-2 border-b px-4 text-sm font-semibold">
-              <span className="size-2 rounded-full bg-muted-foreground" />
-              No cluster selected
+              <span className={cn("size-2 rounded-full", cluster ? "bg-emerald-400" : "bg-muted-foreground")} />
+              <span className="truncate">{cluster?.context ?? "No cluster selected"}</span>
             </div>
             <ScrollArea className="min-h-0 flex-1">
               <ul className="p-2 text-sm">
@@ -91,8 +128,27 @@ export default function App() {
           <main className="flex min-w-0 flex-1 flex-col">
             <header className="flex h-12 items-center gap-3 border-b px-4">
               <h1 className="text-sm font-semibold">{active.split("/")[1]}</h1>
-              <Badge variant="secondary">all namespaces</Badge>
+              {cluster && (
+                <>
+                  <select
+                    value={namespace}
+                    onChange={(e) => setNamespace(e.target.value)}
+                    className="h-7 rounded-md border bg-background px-2 text-xs"
+                  >
+                    <option value="">All namespaces</option>
+                    {namespaces.map((n) => <option key={n}>{n}</option>)}
+                  </select>
+                  <Badge variant="secondary" className="ml-auto">{cluster.version} · read-only</Badge>
+                </>
+              )}
             </header>
+            {cluster && active === "Workloads/Pods" ? (
+              <PodsView context={cluster.context} namespace={namespace} />
+            ) : cluster ? (
+              <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+                Not implemented yet — see ROADMAP.md
+              </div>
+            ) : (
             <div className="flex flex-1 items-center justify-center">
               <div className="text-center">
                 <p className="text-lg font-semibold">
@@ -101,9 +157,10 @@ export default function App() {
                 <p className="mt-1 text-sm text-muted-foreground">
                   Connect a cluster from your kubeconfig to get started.
                 </p>
-                <Button className="mt-4"><Plus /> Add cluster</Button>
+                <Button className="mt-4" onClick={() => setAddOpen(true)}><Plus /> Add cluster</Button>
               </div>
             </div>
+            )}
           </main>
         </div>
 
@@ -114,6 +171,7 @@ export default function App() {
           <span className="ml-auto">v0.1.0</span>
         </footer>
       </div>
+      <AddClusterDialog open={addOpen} onOpenChange={setAddOpen} onConnected={onConnected} />
     </TooltipProvider>
   );
 }
