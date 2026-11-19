@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    tauri_appk8sfocus_lib::run()
+    k8sfocus_lib::run()
 }
