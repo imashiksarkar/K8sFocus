@@ -17,6 +17,10 @@ import { VIEWS } from "@/features/registry";
 import { CustomResourceView } from "@/features/crds/views";
 import { CommandPalette, type PaletteAction } from "@/features/palette/CommandPalette";
 import { PreferencesDialog } from "@/features/prefs/PreferencesDialog";
+import { ShortcutsDialog } from "@/features/prefs/ShortcutsDialog";
+import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useWatch } from "@/lib/useWatch";
 import { Dock } from "@/components/dock/Dock";
 import type { DockTab } from "@/components/dock/types";
@@ -41,6 +45,7 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [focusUid, setFocusUid] = useState<string>();
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [dockActive, setDockActive] = useState<string>();
   const [dockOpen, setDockOpen] = useState(true);
   const [dockHeight, setDockHeight] = useState(() => {
@@ -158,8 +163,33 @@ export default function App() {
     { id: "create", label: "Create resource from YAML", shortcut: "⌘N", run: () => setEditorTarget({ mode: "create" }), disabled: !cluster },
     { id: "add", label: "Add cluster…", run: () => setAddOpen(true) },
     { id: "prefs", label: "Preferences…", shortcut: "⌘,", run: () => setPrefsOpen(true) },
+    { id: "shortcuts", label: "Keyboard shortcuts", run: () => setShortcutsOpen(true) },
     { id: "overview", label: "Go to cluster overview", run: () => setActive("Cluster/Overview"), disabled: !cluster },
   ];
+
+  // T29: native menu → actions (menu owns ⌘K ⌘, ⌘J ⌘T ⌘N ⌘⇧O)
+  const menuRef = useRef<(id: string) => void>(() => {});
+  menuRef.current = (id: string) => {
+    switch (id) {
+      case "palette": setPaletteOpen((o) => !o); break;
+      case "preferences": setPrefsOpen(true); break;
+      case "dock": if (dockTabs.length) setDockOpen((o) => !o); break;
+      case "terminal": openTerminal(); break;
+      case "create": if (cluster) setEditorTarget({ mode: "create" }); break;
+      case "add-cluster": setAddOpen(true); break;
+      case "overview": if (cluster) setActive("Cluster/Overview"); break;
+      case "shortcuts": setShortcutsOpen(true); break;
+      case "roadmap": openUrl("https://github.com/imashiksarkar/K8sFocus").catch(() => {}); break;
+    }
+  };
+  useEffect(() => {
+    const un = listen<string>("menu", (e) => menuRef.current(e.payload));
+    return () => { un.then((f) => f()); };
+  }, []);
+
+  // window title shows the active cluster
+  const windowTitle = cluster ? `${savedCluster?.name ?? cluster.context} — K8sFocus` : "K8sFocus";
+  useEffect(() => { getCurrentWindow().setTitle(windowTitle).catch(() => {}); }, [windowTitle]);
 
   // global shortcuts (skip when typing in an editor/terminal, except ⌘K)
   const shortcutRef = useRef<(e: KeyboardEvent) => void>(() => {});
@@ -168,13 +198,10 @@ export default function App() {
     if (!mod) return;
     const k = e.key.toLowerCase();
     const inEditor = !!(e.target as HTMLElement).closest?.(".monaco-editor, .xterm");
-    if (k === "k") { e.preventDefault(); setPaletteOpen((o) => !o); return; }
-    if (k === ",") { e.preventDefault(); setPrefsOpen(true); return; }
+    // these are native menu accelerators; the menu fires them (avoid double-handling)
+    if (["k", ",", "j", "t", "n"].includes(k)) { e.preventDefault(); return; }
     if (inEditor) return;
-    if (k === "j" && dockTabs.length) { e.preventDefault(); setDockOpen((o) => !o); }
-    else if (k === "t") { e.preventDefault(); openTerminal(); }
-    else if (k === "n" && cluster) { e.preventDefault(); setEditorTarget({ mode: "create" }); }
-    else if (/^[1-9]$/.test(k) && saved[Number(k) - 1]) { e.preventDefault(); selectSaved(saved[Number(k) - 1]); }
+    if (/^[1-9]$/.test(k) && saved[Number(k) - 1]) { e.preventDefault(); selectSaved(saved[Number(k) - 1]); }
   };
   useEffect(() => {
     const h = (e: KeyboardEvent) => shortcutRef.current(e);
@@ -362,6 +389,7 @@ export default function App() {
       </div>
       <AddClusterDialog open={addOpen} onOpenChange={setAddOpen} onConnected={onConnected} />
       <PreferencesDialog open={prefsOpen} onOpenChange={setPrefsOpen} />
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <CommandPalette
         open={paletteOpen} onOpenChange={setPaletteOpen}
         context={cluster?.context} clusters={saved} crds={crds} actions={actions}

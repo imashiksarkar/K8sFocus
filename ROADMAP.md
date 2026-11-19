@@ -83,7 +83,7 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 ### Phase 7: Polish and distribution
 - [~] **T27 Command palette (⌘K) and keyboard shortcuts.**
 - [~] **T28 Preferences screen.**
-- [ ] **T29 Native app menu and window state persistence.**
+- [~] **T29 Native app menu and window state persistence.**
 - [ ] **T30 App icon and branding.**
 - [ ] **T31 macOS code signing and notarization in CI (needs an Apple Developer account), and Windows signing (optional).**
 - [ ] **T32 Auto-updater.** Uses `tauri-plugin-updater` with GitHub Releases.

@@ -3,6 +3,7 @@ mod exec;
 mod helm;
 mod kube;
 mod logs;
+mod menu;
 mod mutate;
 mod nodes;
 mod portforward;
@@ -26,6 +27,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .menu(menu::build)
+        .on_menu_event(|app, e| menu::on_event(app, e.id().as_ref()))
         .manage(kube::KubeState::default())
         .manage(watch::WatchState::default())
         .manage(exec::ExecState::default())
