@@ -4,6 +4,9 @@ import { ResourceView } from "@/components/resource-view/ResourceView";
 import { ScrollText, SquareTerminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCluster } from "@/lib/cluster-context";
+import { fmtCpu, fmtMem, useMetrics, type MetricsSnapshot } from "@/lib/metrics";
+import { Sparkline } from "@/components/metrics/Sparkline";
+import { MetricsHint } from "@/components/metrics/MetricsHint";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { commonColumns } from "@/components/resource-table/columns";
 import { R, type KObject } from "@/lib/resources";
@@ -29,7 +32,7 @@ const statusColor = (s: string) =>
 const containers = (p: KObject): any[] => p.status?.containerStatuses ?? [];
 const restarts = (p: KObject) => containers(p).reduce((n, c) => n + (c.restartCount ?? 0), 0);
 
-function podColumns(): ColumnDef<KObject, any>[] {
+function podColumns(m: MetricsSnapshot): ColumnDef<KObject, any>[] {
   const c = createColumnHelper<KObject>();
   const common = commonColumns<KObject>();
   return [
@@ -51,6 +54,24 @@ function podColumns(): ColumnDef<KObject, any>[] {
         return <span className="text-muted-foreground">{ref ? `${ref.kind}` : ""}</span>;
       },
     }),
+    c.accessor((p) => m.usage.get(`${p.metadata.namespace}/${p.metadata.name}`)?.cpu ?? -1, {
+      id: "cpu", header: "CPU", sortDescFirst: true,
+      cell: (i) => i.getValue() < 0 ? <span className="text-muted-foreground">—</span> : (
+        <span className="inline-flex items-center gap-1.5 tabular-nums">
+          <Sparkline data={m.history.get(`${i.row.original.metadata.namespace}/${i.row.original.metadata.name}`)?.cpu ?? []} />
+          {fmtCpu(i.getValue())}
+        </span>
+      ),
+    }),
+    c.accessor((p) => m.usage.get(`${p.metadata.namespace}/${p.metadata.name}`)?.memory ?? -1, {
+      id: "memory", header: "Memory", sortDescFirst: true,
+      cell: (i) => i.getValue() < 0 ? <span className="text-muted-foreground">—</span> : (
+        <span className="inline-flex items-center gap-1.5 tabular-nums">
+          <Sparkline data={m.history.get(`${i.row.original.metadata.namespace}/${i.row.original.metadata.name}`)?.memory ?? []} />
+          {fmtMem(i.getValue())}
+        </span>
+      ),
+    }),
     c.accessor((p) => p.spec?.nodeName ?? "", {
       id: "node", header: "Node", cell: (i) => <span className="text-muted-foreground">{i.getValue()}</span>,
     }),
@@ -64,7 +85,8 @@ function podColumns(): ColumnDef<KObject, any>[] {
 }
 
 export function PodsView({ context, namespaces }: { context: string; namespaces: string[] }) {
-  const columns = useMemo(podColumns, []);
+  const metrics = useMetrics(context, "pods");
+  const columns = useMemo(() => podColumns(metrics), [metrics]);
   return (
     <ResourceView
       context={context}
@@ -73,6 +95,7 @@ export function PodsView({ context, namespaces }: { context: string; namespaces:
       columns={columns}
       details={(p) => <PodDetails pod={p} />}
       actions={(p) => <><ShellButton pod={p} /><LogsButton pod={p} /></>}
+      toolbar={<MetricsHint m={metrics} />}
     />
   );
 }

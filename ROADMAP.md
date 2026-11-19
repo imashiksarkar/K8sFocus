@@ -72,7 +72,7 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 - [~] **T21 Port forwarding.** Forward from pods and services, plus a manager view where you can open the forwarded port in the browser.
 
 ### Phase 5: Metrics and overview
-- [ ] **T22 metrics-server integration.** Pod and node CPU/mem columns and sparklines.
+- [~] **T22 metrics-server integration.** Pod and node CPU/mem columns and sparklines.
 - [ ] **T23 Cluster overview and workloads overview dashboards.**
 - [ ] **T24 Prometheus integration (optional).** Historical charts.
 

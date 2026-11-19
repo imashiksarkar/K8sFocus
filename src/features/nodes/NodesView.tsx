@@ -16,6 +16,9 @@ import { R, type KObject } from "@/lib/resources";
 import { useWatch } from "@/lib/useWatch";
 import { cn } from "@/lib/utils";
 import { podStatus } from "../PodsView";
+import { fmtCpu, fmtMem, useMetrics, type MetricsSnapshot } from "@/lib/metrics";
+import { Sparkline, UsageBar } from "@/components/metrics/Sparkline";
+import { MetricsHint } from "@/components/metrics/MetricsHint";
 
 type ViewProps = { context: string; namespaces: string[] };
 const c = createColumnHelper<KObject>();
@@ -34,7 +37,7 @@ const problems = (n: KObject) =>
 
 const internalIP = (n: KObject) => (n.status?.addresses ?? []).find((a: any) => a.type === "InternalIP")?.address ?? "";
 
-function nodeColumns(): ColumnDef<KObject, any>[] {
+function nodeColumns(m: MetricsSnapshot): ColumnDef<KObject, any>[] {
   const k = commonColumns<KObject>();
   return [
     k.name,
@@ -45,6 +48,30 @@ function nodeColumns(): ColumnDef<KObject, any>[] {
       id: "memory", header: "Memory", cell: (i) => fmtBytes(i.getValue()),
     }),
     c.accessor((n) => Number(n.status?.allocatable?.pods ?? 0), { id: "podsCap", header: "Max Pods" }),
+    c.accessor((n) => {
+      const u = m.usage.get(n.metadata.name);
+      return u ? u.cpu / (parseQuantity(n.status?.allocatable?.cpu) || 1) : -1;
+    }, {
+      id: "cpuUsage", header: "CPU Usage", sortDescFirst: true,
+      cell: (i) => {
+        const n = i.row.original; const u = m.usage.get(n.metadata.name);
+        return u ? <span className="inline-flex items-center gap-2"><Sparkline data={m.history.get(n.metadata.name)?.cpu ?? []} />
+          <UsageBar value={u.cpu} max={parseQuantity(n.status?.allocatable?.cpu)} label={`${fmtCpu(u.cpu)} of ${n.status?.allocatable?.cpu}`} /></span>
+          : <span className="text-muted-foreground">—</span>;
+      },
+    }),
+    c.accessor((n) => {
+      const u = m.usage.get(n.metadata.name);
+      return u ? u.memory / (parseQuantity(n.status?.allocatable?.memory) || 1) : -1;
+    }, {
+      id: "memUsage", header: "Memory Usage", sortDescFirst: true,
+      cell: (i) => {
+        const n = i.row.original; const u = m.usage.get(n.metadata.name);
+        return u ? <span className="inline-flex items-center gap-2"><Sparkline data={m.history.get(n.metadata.name)?.memory ?? []} />
+          <UsageBar value={u.memory} max={parseQuantity(n.status?.allocatable?.memory)} label={`${fmtMem(u.memory)} of ${fmtBytes(parseQuantity(n.status?.allocatable?.memory))}`} /></span>
+          : <span className="text-muted-foreground">—</span>;
+      },
+    }),
     c.accessor((n) => n.spec?.taints?.length ?? 0, { id: "taints", header: "Taints" }),
     c.accessor(roles, { id: "roles", header: "Roles" }),
     c.accessor((n) => n.status?.nodeInfo?.kubeletVersion ?? "", { id: "version", header: "Version" }),
@@ -236,6 +263,8 @@ function NodePods({ node }: { node: KObject }) {
 }
 
 function NodeDetails({ node }: { node: KObject }) {
+  const { context } = useCluster();
+  const usage = useMetrics(context, "nodes").usage.get(node.metadata.name);
   const st = node.status ?? {};
   const info = st.nodeInfo ?? {};
   const res = (k: string, f: (q: string) => string) => `${f(st.capacity?.[k])} capacity · ${f(st.allocatable?.[k])} allocatable`;
@@ -246,6 +275,8 @@ function NodeDetails({ node }: { node: KObject }) {
           ["Status", nodeStatus(node)],
           ["Roles", roles(node)],
           ["Addresses", (st.addresses ?? []).map((a: any) => `${a.type}: ${a.address}`).join(", ")],
+          ["CPU usage", usage && <UsageBar value={usage.cpu} max={parseQuantity(st.allocatable?.cpu)} label={fmtCpu(usage.cpu)} />],
+          ["Memory usage", usage && <UsageBar value={usage.memory} max={parseQuantity(st.allocatable?.memory)} label={fmtMem(usage.memory)} />],
           ["CPU", res("cpu", (q) => `${+parseQuantity(q).toFixed(2)}`)],
           ["Memory", res("memory", (q) => fmtBytes(parseQuantity(q)))],
           ["Ephemeral storage", res("ephemeral-storage", (q) => fmtBytes(parseQuantity(q)))],
@@ -276,10 +307,12 @@ function NodeDetails({ node }: { node: KObject }) {
 }
 
 export function NodesView(p: ViewProps) {
-  const columns = useMemo(nodeColumns, []);
+  const metrics = useMetrics(p.context, "nodes");
+  const columns = useMemo(() => nodeColumns(metrics), [metrics]);
   return (
     <ResourceView {...p} resource={R.nodes} columns={columns}
       details={(n) => <NodeDetails node={n} />}
-      actions={(n) => <><CordonButton node={n} /><DrainButton node={n} /></>} />
+      actions={(n) => <><CordonButton node={n} /><DrainButton node={n} /></>}
+      toolbar={<MetricsHint m={metrics} />} />
   );
 }

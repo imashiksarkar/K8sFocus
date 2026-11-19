@@ -17,10 +17,11 @@ export type ResourceViewProps = {
   details?: (o: KObject) => ReactNode;
   /** Extra header buttons in the details panel (scale, restart, ...). */
   actions?: (o: KObject) => ReactNode;
+  toolbar?: ReactNode;
 };
 
 /** Live table + details panel for any resource. Edit/Delete come for free. */
-export function ResourceView({ context, namespaces, resource, columns, defaultSort, details, actions }: ResourceViewProps) {
+export function ResourceView({ context, namespaces, resource, columns, defaultSort, details, actions, toolbar }: ResourceViewProps) {
   const { items, ready, error } = useWatch(context, resource, namespaces);
   const [selected, setSelected] = useState<string>();
   const close = useCallback(() => setSelected(undefined), []);
@@ -41,6 +42,7 @@ export function ResourceView({ context, namespaces, resource, columns, defaultSo
           : [{ id: "name", desc: false }])}
         onRowClick={(o) => setSelected(o.metadata.uid === selected ? undefined : o.metadata.uid)}
         selectedRowId={selected}
+        toolbar={toolbar}
       />
       <DetailsPanel
         context={context}

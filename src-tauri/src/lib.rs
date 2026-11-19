@@ -37,6 +37,7 @@ pub fn run() {
             catalog::save_catalog,
             watch::watch_resource,
             watch::stop_watch,
+            watch::list_resource,
             logs::stream_logs,
             logs::save_text_file,
             exec::exec_start,

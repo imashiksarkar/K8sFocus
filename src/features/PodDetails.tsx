@@ -5,10 +5,13 @@ import { cn } from "@/lib/utils";
 import { podStatus } from "./PodsView";
 import { useCluster } from "@/lib/cluster-context";
 import { ForwardButton } from "./portforward/ForwardButton";
+import { fmtCpu, fmtMem, useMetrics, type Usage } from "@/lib/metrics";
+import { parseQuantity } from "@/lib/k8s";
 
 /** Pod-specific sections for the details panel. Never resolves secret values. */
 export function PodDetails({ pod }: { pod: KObject }) {
-  const { openLogs } = useCluster();
+  const { openLogs, context } = useCluster();
+  const usage = useMetrics(context, "pods").usage.get(`${pod.metadata.namespace}/${pod.metadata.name}`);
   const spec = pod.spec ?? {};
   const st = pod.status ?? {};
   const statuses: any[] = [...(st.initContainerStatuses ?? []), ...(st.containerStatuses ?? [])];
@@ -38,7 +41,7 @@ export function PodDetails({ pod }: { pod: KObject }) {
         <Container key={`init-${c.name}`} c={c} status={statusOf(c.name)} init onLogs={() => openLogs(pod, c.name)} />
       ))}
       {(spec.containers ?? []).map((c: any) => (
-        <Container key={c.name} c={c} status={statusOf(c.name)} onLogs={() => openLogs(pod, c.name)} pod={pod} />
+        <Container key={c.name} c={c} status={statusOf(c.name)} onLogs={() => openLogs(pod, c.name)} pod={pod} usage={usage?.containers?.[c.name]} />
       ))}
 
       {spec.volumes?.length > 0 && (
@@ -70,7 +73,9 @@ function stateText(s: any): { text: string; ok: boolean } {
   return { text: `terminated: ${t.reason ?? ""} (exit ${t.exitCode})`, ok: t.exitCode === 0 };
 }
 
-function Container({ c, status, init, onLogs, pod }: { c: any; status?: any; init?: boolean; onLogs: () => void; pod?: KObject }) {
+function Container({ c, status, init, onLogs, pod, usage }: {
+  c: any; status?: any; init?: boolean; onLogs: () => void; pod?: KObject; usage?: Usage;
+}) {
   const state = stateText(status);
   const last = status?.lastState?.terminated;
   return (
@@ -95,6 +100,8 @@ function Container({ c, status, init, onLogs, pod }: { c: any; status?: any; ini
             </li>
           ))}</ul>
         ) : undefined],
+        ["CPU usage", usage && usageVs(fmtCpu(usage.cpu), usage.cpu, c.resources?.requests?.cpu, c.resources?.limits?.cpu)],
+        ["Memory usage", usage && usageVs(fmtMem(usage.memory), usage.memory, c.resources?.requests?.memory, c.resources?.limits?.memory)],
         ["Requests", fmtRes(c.resources?.requests)],
         ["Limits", fmtRes(c.resources?.limits)],
         ["Liveness", probe(c.livenessProbe)],
@@ -153,4 +160,15 @@ function probe(p: any) {
     : p.exec ? `exec ${p.exec.command?.join(" ")}`
     : p.grpc ? `grpc :${p.grpc.port}` : "";
   return `${how} delay=${p.initialDelaySeconds ?? 0}s timeout=${p.timeoutSeconds ?? 1}s period=${p.periodSeconds ?? 10}s #fail=${p.failureThreshold ?? 3}`;
+}
+
+function usageVs(text: string, used: number, req?: string, lim?: string) {
+  const pct = (q?: string) => (q ? `${Math.round((used / parseQuantity(q)) * 100)}% of ${q}` : undefined);
+  const limPct = lim ? used / parseQuantity(lim) : 0;
+  return (
+    <span className={cn(limPct > 0.9 ? "text-destructive" : limPct > 0.75 ? "text-primary" : undefined)}>
+      {text}
+      <span className="text-muted-foreground">{[req && ` · ${pct(req)} request`, lim && ` · ${pct(lim)} limit`].filter(Boolean).join("")}</span>
+    </span>
+  );
 }

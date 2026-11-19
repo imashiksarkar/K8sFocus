@@ -121,3 +121,26 @@ pub async fn stop_watch(watches: tauri::State<'_, WatchState>, id: u64) -> Resul
 fn to_json(o: DynamicObject) -> serde_json::Value {
     serde_json::to_value(o).unwrap_or_default()
 }
+
+/// One-shot READ-ONLY list of any resource (used for APIs that don't support watch,
+/// e.g. metrics.k8s.io). Returns the items as JSON.
+#[tauri::command]
+pub async fn list_resource(
+    kube: tauri::State<'_, KubeState>,
+    context: String,
+    resource: ResourceRef,
+    namespace: Option<String>,
+) -> Result<Vec<serde_json::Value>, String> {
+    let client = client_for(&kube, &context).await?;
+    let gvk = GroupVersionKind::gvk(&resource.group, &resource.version, &resource.kind);
+    let ar = ApiResource::from_gvk_with_plural(&gvk, &resource.plural);
+    let api: Api<DynamicObject> = match namespace.as_deref() {
+        Some(ns) if resource.namespaced && !ns.is_empty() => Api::namespaced_with(client, ns, &ar),
+        _ => Api::all_with(client, &ar),
+    };
+    let list = api
+        .list(&kube::api::ListParams::default())
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(list.items.into_iter().map(to_json).collect())
+}
