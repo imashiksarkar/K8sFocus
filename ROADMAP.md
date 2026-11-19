@@ -73,7 +73,7 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 
 ### Phase 5: Metrics and overview
 - [~] **T22 metrics-server integration.** Pod and node CPU/mem columns and sparklines.
-- [ ] **T23 Cluster overview and workloads overview dashboards.**
+- [~] **T23 Cluster overview and workloads overview dashboards.**
 - [ ] **T24 Prometheus integration (optional).** Historical charts.
 
 ### Phase 6: Helm

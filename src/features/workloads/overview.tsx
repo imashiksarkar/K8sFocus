@@ -73,7 +73,7 @@ function KindCard({ context, namespaces, kind, navigate }: ViewProps & { kind: (
   );
 }
 
-function WarningEvents({ context, namespaces }: ViewProps) {
+export function WarningEvents({ context, namespaces }: ViewProps) {
   const { items, ready } = useWatch(context, R.events, namespaces);
   const warnings = useMemo(
     () => items.filter((e: any) => e.type === "Warning")

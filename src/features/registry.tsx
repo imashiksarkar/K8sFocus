@@ -12,11 +12,13 @@ import * as Storage from "./storage/views";
 import * as Cluster from "./cluster/views";
 import { CRDsView } from "./crds/views";
 import { PortForwardsView } from "./portforward/PortForwardsView";
+import { ClusterOverview } from "./cluster/ClusterOverview";
 
 export type ViewProps = { context: string; namespaces: string[]; navigate?: (key: string) => void };
 
 /** Sidebar key ("Group/Item") → view. Missing keys show "not implemented yet". */
 export const VIEWS: Record<string, ComponentType<ViewProps>> = {
+  "Cluster/Overview": ClusterOverview,
   "Nodes/Nodes": NodesView,
 
   "Workloads/Overview": WorkloadsOverview,

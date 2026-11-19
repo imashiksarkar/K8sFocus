@@ -25,7 +25,7 @@ import { NamespacePicker } from "@/features/NamespacePicker";
 /** App shell. Layout mirrors Lens: hotbar | cluster sidebar | main view | status bar. */
 export default function App() {
   const [open, setOpen] = useState<string>("Workloads");
-  const [active, setActive] = useState("Workloads/Pods");
+  const [active, setActive] = useState("Cluster/Overview");
   const [addOpen, setAddOpen] = useState(false);
   const [saved, setSaved] = useState<SavedCluster[]>([]);
   const [connecting, setConnecting] = useState<string>();
@@ -143,8 +143,7 @@ export default function App() {
     });
     setConnectError(undefined);
     setCluster(c);
-    setActive("Workloads/Pods");
-    setOpen("Workloads");
+    setActive("Cluster/Overview");
   }
 
   return (
