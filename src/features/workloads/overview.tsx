@@ -94,7 +94,7 @@ export function WarningEvents({ context, namespaces }: ViewProps) {
                 <span className="text-muted-foreground">{e.involvedObject?.kind}/{e.involvedObject?.name} · {e.metadata.namespace}</span>
                 {e.count > 1 && <span className="text-muted-foreground"> · ×{e.count}</span>}
               </div>
-              <p className="break-words select-text">{e.message}</p>
+              <p className="wrap-break-word select-text">{e.message}</p>
             </div>
           </li>
         ))}
