@@ -1,5 +1,6 @@
 mod catalog;
 mod exec;
+mod helm;
 mod kube;
 mod logs;
 mod mutate;
@@ -51,6 +52,12 @@ pub fn run() {
             portforward::port_forward_start,
             portforward::port_forward_list,
             portforward::port_forward_stop,
+            helm::helm_list,
+            helm::helm_get,
+            helm::helm_history,
+            helm::helm_rollback,
+            helm::helm_uninstall,
+            helm::helm_version,
             mutate::get_yaml,
             mutate::apply_yaml,
             mutate::delete_resource,

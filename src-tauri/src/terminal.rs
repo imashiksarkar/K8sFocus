@@ -28,7 +28,7 @@ pub struct TerminalState {
 }
 
 /// Write a kubeconfig containing only `context` (+ its cluster and user) to the app cache dir.
-fn scoped_kubeconfig(app: &AppHandle, context: &str) -> Result<PathBuf, String> {
+pub fn scoped_kubeconfig(app: &AppHandle, context: &str) -> Result<PathBuf, String> {
     let kc = Kubeconfig::read().map_err(|e| e.to_string())?;
     let ctx = kc
         .contexts

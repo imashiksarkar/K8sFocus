@@ -77,7 +77,7 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 - [ ] **T24 Prometheus integration (optional).** Historical charts.
 
 ### Phase 6: Helm
-- [ ] **T25 Helm releases.** List, view details and values, view history, roll back and uninstall. This shells out to the `helm` CLI.
+- [~] **T25 Helm releases.** List, view details and values, view history, roll back and uninstall. This shells out to the `helm` CLI.
 - [ ] **T26 Helm charts.** Manage repos, search charts, install, and upgrade with a values editor.
 
 ### Phase 7: Polish and distribution

@@ -13,6 +13,7 @@ import * as Cluster from "./cluster/views";
 import { CRDsView } from "./crds/views";
 import { PortForwardsView } from "./portforward/PortForwardsView";
 import { ClusterOverview } from "./cluster/ClusterOverview";
+import { HelmReleasesView } from "./helm/ReleasesView";
 
 export type ViewProps = { context: string; namespaces: string[]; navigate?: (key: string) => void };
 
@@ -66,4 +67,6 @@ export const VIEWS: Record<string, ComponentType<ViewProps>> = {
   "Access Control/Role Bindings": Cluster.RoleBindingsView,
 
   "Custom Resources/Definitions": CRDsView,
+
+  "Helm/Releases": HelmReleasesView,
 };
