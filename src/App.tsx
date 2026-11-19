@@ -13,7 +13,7 @@ import { DeleteDialog } from "@/components/editor/DeleteDialog";
 import { ReadOnlyToggle } from "@/features/ReadOnlyToggle";
 import { Hotbar } from "@/features/Hotbar";
 import { AddClusterDialog } from "@/features/AddClusterDialog";
-import { PodsView } from "@/features/PodsView";
+import { VIEWS } from "@/features/registry";
 import { NamespacePicker } from "@/features/NamespacePicker";
 
 /** App shell. Layout mirrors Lens: hotbar | cluster sidebar | main view | status bar. */
@@ -130,6 +130,7 @@ export default function App() {
                                   onClick={() => setActive(key)}
                                   className={cn(
                                     "w-full rounded-md px-2 py-1 text-left text-sidebar-foreground/70 hover:bg-sidebar-accent",
+                                    !VIEWS[key] && "opacity-45",
                                     active === key && "bg-sidebar-accent text-primary",
                                   )}
                                 >
@@ -173,12 +174,15 @@ export default function App() {
                 {connectError} <span className="opacity-60">(click to dismiss)</span>
               </button>
             )}
-            {cluster && active === "Workloads/Pods" ? (
+            {cluster && VIEWS[active] ? (
               <ClusterContext.Provider value={{
                 context: cluster.context, readOnly,
                 openEditor: setEditorTarget, confirmDelete: setDeleteTarget,
               }}>
-                <PodsView key={cluster.context} context={cluster.context} namespaces={namespaces} />
+                {(() => {
+                  const View = VIEWS[active];
+                  return <View key={`${cluster.context}/${active}`} context={cluster.context} namespaces={namespaces} />;
+                })()}
               </ClusterContext.Provider>
             ) : cluster ? (
               <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">

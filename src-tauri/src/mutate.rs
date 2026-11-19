@@ -184,3 +184,101 @@ pub async fn delete_resource(
         .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+/// Scale a Deployment/StatefulSet/ReplicaSet (merge-patch spec.replicas).
+#[tauri::command]
+pub async fn scale_resource(
+    app: AppHandle,
+    kube: tauri::State<'_, KubeState>,
+    context: String,
+    obj: ObjRef,
+    replicas: i32,
+) -> Result<(), String> {
+    ensure_writable(&app, &context)?;
+    if !(0..=1000).contains(&replicas) {
+        return Err("Replicas must be between 0 and 1000".into());
+    }
+    let client = client_for(&kube, &context).await?;
+    let (api, _) = api_for(
+        client,
+        &obj.api_version,
+        &obj.kind,
+        obj.namespace.as_deref(),
+    )
+    .await?;
+    let patch = serde_json::json!({ "spec": { "replicas": replicas } });
+    api.patch(&obj.name, &PatchParams::default(), &Patch::Merge(&patch))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Rolling restart, same as `kubectl rollout restart` (bumps a pod-template annotation).
+#[tauri::command]
+pub async fn restart_workload(
+    app: AppHandle,
+    kube: tauri::State<'_, KubeState>,
+    context: String,
+    obj: ObjRef,
+) -> Result<(), String> {
+    ensure_writable(&app, &context)?;
+    let client = client_for(&kube, &context).await?;
+    let (api, _) = api_for(
+        client,
+        &obj.api_version,
+        &obj.kind,
+        obj.namespace.as_deref(),
+    )
+    .await?;
+    let now = k8s_openapi::chrono::Utc::now().to_rfc3339();
+    let patch = serde_json::json!({ "spec": { "template": { "metadata": { "annotations": {
+        "kubectl.kubernetes.io/restartedAt": now
+    }}}}});
+    api.patch(&obj.name, &PatchParams::default(), &Patch::Merge(&patch))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Roll a Deployment back to a previous ReplicaSet's pod template (like `kubectl rollout undo`).
+/// The frontend passes the chosen ReplicaSet; we read its template server-side.
+#[tauri::command]
+pub async fn rollback_deployment(
+    app: AppHandle,
+    kube: tauri::State<'_, KubeState>,
+    context: String,
+    namespace: String,
+    name: String,
+    replica_set: String,
+) -> Result<(), String> {
+    ensure_writable(&app, &context)?;
+    let client = client_for(&kube, &context).await?;
+    let rs_api: Api<k8s_openapi::api::apps::v1::ReplicaSet> =
+        Api::namespaced(client.clone(), &namespace);
+    let rs = rs_api.get(&replica_set).await.map_err(|e| e.to_string())?;
+    let owned = rs
+        .metadata
+        .owner_references
+        .unwrap_or_default()
+        .iter()
+        .any(|o| o.kind == "Deployment" && o.name == name);
+    if !owned {
+        return Err(format!(
+            "ReplicaSet {replica_set} does not belong to Deployment {name}"
+        ));
+    }
+    let mut template =
+        serde_json::to_value(rs.spec.and_then(|s| s.template)).map_err(|e| e.to_string())?;
+    // the RS template carries the pod-template-hash label; the Deployment's must not
+    if let Some(l) = template["metadata"]["labels"].as_object_mut() {
+        l.remove("pod-template-hash");
+    }
+    let patch =
+        serde_json::json!([{ "op": "replace", "path": "/spec/template", "value": template }]);
+    let patch: json_patch::Patch = serde_json::from_value(patch).map_err(|e| e.to_string())?;
+    let api: Api<k8s_openapi::api::apps::v1::Deployment> = Api::namespaced(client, &namespace);
+    api.patch(&name, &PatchParams::default(), &Patch::Json::<()>(patch))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}

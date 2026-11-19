@@ -31,6 +31,9 @@ pub fn run() {
             mutate::get_yaml,
             mutate::apply_yaml,
             mutate::delete_resource,
+            mutate::scale_resource,
+            mutate::restart_workload,
+            mutate::rollback_deployment,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

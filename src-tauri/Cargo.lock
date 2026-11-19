@@ -2246,6 +2246,7 @@ name = "k8sfocus"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "json-patch",
  "k8s-openapi",
  "kube",
  "rustls",

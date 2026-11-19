@@ -32,6 +32,10 @@ export const k8sWrite = {
       context, yaml, dryRun: opts.dryRun, force: opts.force ?? false, defaultNamespace: opts.defaultNamespace,
     }),
   delete: (context: string, obj: ObjRef, dryRun = false) => invoke<void>("delete_resource", { context, obj, dryRun }),
+  scale: (context: string, obj: ObjRef, replicas: number) => invoke<void>("scale_resource", { context, obj, replicas }),
+  restart: (context: string, obj: ObjRef) => invoke<void>("restart_workload", { context, obj }),
+  rollback: (context: string, namespace: string, name: string, replicaSet: string) =>
+    invoke<void>("rollback_deployment", { context, namespace, name, replicaSet }),
 };
 export const catalog = {
   load: () => invoke<SavedCluster[]>("load_catalog"),

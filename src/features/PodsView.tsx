@@ -1,12 +1,9 @@
-import { useCallback, useMemo, useState } from "react";
-import { DetailsPanel } from "@/components/details/DetailsPanel";
+import { useMemo } from "react";
 import { PodDetails } from "./PodDetails";
-import { ObjectActions } from "@/components/details/ObjectActions";
+import { ResourceView } from "@/components/resource-view/ResourceView";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
-import { ResourceTable } from "@/components/resource-table/ResourceTable";
-import { commonColumns, kobjectId, searchKObject } from "@/components/resource-table/columns";
-import { R, refOf, type KObject } from "@/lib/resources";
-import { useWatch } from "@/lib/useWatch";
+import { commonColumns } from "@/components/resource-table/columns";
+import { R, type KObject } from "@/lib/resources";
 import { cn } from "@/lib/utils";
 
 /** Status the way kubectl/Lens show it (CrashLoopBackOff, Terminating, ...). */
@@ -63,37 +60,15 @@ function podColumns(): ColumnDef<KObject, any>[] {
   ];
 }
 
-/** Live, read-only pods list. */
 export function PodsView({ context, namespaces }: { context: string; namespaces: string[] }) {
-  const { items, ready, error } = useWatch(context, R.pods, namespaces);
   const columns = useMemo(podColumns, []);
-  const [selected, setSelected] = useState<string>();
-  const close = useCallback(() => setSelected(undefined), []);
-  // live copy from the watch; disappears (panel closes) if the pod is deleted
-  const pod = selected ? items.find((p) => p.metadata.uid === selected) : undefined;
-
   return (
-    <div className="flex min-h-0 flex-1">
-      <ResourceTable
-        id="pods"
-        items={items}
-        columns={columns}
-        getRowId={kobjectId}
-        searchText={searchKObject}
-        ready={ready}
-        error={error}
-        defaultSort={[{ id: "namespace", desc: false }, { id: "name", desc: false }]}
-        onRowClick={(p) => setSelected(p.metadata.uid === selected ? undefined : p.metadata.uid)}
-        selectedRowId={selected}
-      />
-      <DetailsPanel
-        context={context}
-        object={pod && { kind: "Pod", ...pod }}
-        onClose={close}
-        actions={pod && <ObjectActions obj={refOf(R.pods, pod)} />}
-      >
-        {pod && <PodDetails pod={pod} />}
-      </DetailsPanel>
-    </div>
+    <ResourceView
+      context={context}
+      namespaces={namespaces}
+      resource={R.pods}
+      columns={columns}
+      details={(p) => <PodDetails pod={p} />}
+    />
   );
 }
