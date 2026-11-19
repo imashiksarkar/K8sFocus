@@ -4,6 +4,7 @@ import type { KObject } from "@/lib/resources";
 import { cn } from "@/lib/utils";
 import { podStatus } from "./PodsView";
 import { useCluster } from "@/lib/cluster-context";
+import { ForwardButton } from "./portforward/ForwardButton";
 
 /** Pod-specific sections for the details panel. Never resolves secret values. */
 export function PodDetails({ pod }: { pod: KObject }) {
@@ -37,7 +38,7 @@ export function PodDetails({ pod }: { pod: KObject }) {
         <Container key={`init-${c.name}`} c={c} status={statusOf(c.name)} init onLogs={() => openLogs(pod, c.name)} />
       ))}
       {(spec.containers ?? []).map((c: any) => (
-        <Container key={c.name} c={c} status={statusOf(c.name)} onLogs={() => openLogs(pod, c.name)} />
+        <Container key={c.name} c={c} status={statusOf(c.name)} onLogs={() => openLogs(pod, c.name)} pod={pod} />
       ))}
 
       {spec.volumes?.length > 0 && (
@@ -69,7 +70,7 @@ function stateText(s: any): { text: string; ok: boolean } {
   return { text: `terminated: ${t.reason ?? ""} (exit ${t.exitCode})`, ok: t.exitCode === 0 };
 }
 
-function Container({ c, status, init, onLogs }: { c: any; status?: any; init?: boolean; onLogs: () => void }) {
+function Container({ c, status, init, onLogs, pod }: { c: any; status?: any; init?: boolean; onLogs: () => void; pod?: KObject }) {
   const state = stateText(status);
   const last = status?.lastState?.terminated;
   return (
@@ -84,7 +85,16 @@ function Container({ c, status, init, onLogs }: { c: any; status?: any; init?: b
         ["Image ID", status?.imageID && <span className="font-mono text-xs break-all">{status.imageID}</span>],
         ["Command", c.command?.join(" ")],
         ["Args", c.args?.join(" ")],
-        ["Ports", c.ports?.map((p: any) => `${p.name ? p.name + ":" : ""}${p.containerPort}/${p.protocol ?? "TCP"}`).join(", ")],
+        ["Ports", c.ports?.length ? (
+          <ul>{c.ports.map((p: any) => (
+            <li key={`${p.containerPort}/${p.protocol}`} className="flex gap-3">
+              <span>{p.name ? `${p.name}: ` : ""}{p.containerPort}/{p.protocol ?? "TCP"}</span>
+              {pod && pod.status?.phase === "Running" && (p.protocol ?? "TCP") === "TCP" && (
+                <ForwardButton kind="pod" namespace={pod.metadata.namespace!} name={pod.metadata.name} port={p.containerPort} />
+              )}
+            </li>
+          ))}</ul>
+        ) : undefined],
         ["Requests", fmtRes(c.resources?.requests)],
         ["Limits", fmtRes(c.resources?.limits)],
         ["Liveness", probe(c.livenessProbe)],

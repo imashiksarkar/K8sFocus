@@ -3,6 +3,7 @@ import { Fields, KVChips, Section } from "@/components/details/parts";
 import { col, simpleView } from "@/components/resource-view/simple";
 import { R, type KObject } from "@/lib/resources";
 import { cn } from "@/lib/utils";
+import { ForwardButton } from "../portforward/ForwardButton";
 
 const Muted = ({ children }: { children: React.ReactNode }) => <span className="text-muted-foreground">{children}</span>;
 
@@ -35,7 +36,10 @@ export const ServicesView = simpleView(R.services, [
                 <td className="pr-3">{p.name ?? "—"}</td>
                 <td className="pr-3">{p.port}/{p.protocol ?? "TCP"}</td>
                 <td className="pr-3">→ {p.targetPort}</td>
-                <td>{p.nodePort && `node ${p.nodePort}`}</td>
+                <td className="pr-3">{p.nodePort && `node ${p.nodePort}`}</td>
+                <td>{(p.protocol ?? "TCP") === "TCP" && o.spec?.selector && (
+                  <ForwardButton kind="service" namespace={o.metadata.namespace!} name={o.metadata.name} port={p.port} />
+                )}</td>
               </tr>
             ))}</tbody>
           </table>

@@ -69,7 +69,7 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 - [~] **T18 Pod logs.** Follow mode, choice of container, previous container's logs, search, timestamps and download.
 - [~] **T19 Pod exec shell.** xterm.js connected to kube-rs `exec` over websocket, with terminal resize.
 - [~] **T20 Local terminal.** A PTY (`portable-pty`) with `KUBECONFIG` and the current context set.
-- [ ] **T21 Port forwarding.** Forward from pods and services, plus a manager view where you can open the forwarded port in the browser.
+- [~] **T21 Port forwarding.** Forward from pods and services, plus a manager view where you can open the forwarded port in the browser.
 
 ### Phase 5: Metrics and overview
 - [ ] **T22 metrics-server integration.** Pod and node CPU/mem columns and sparklines.

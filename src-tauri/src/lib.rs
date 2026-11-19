@@ -4,6 +4,7 @@ mod kube;
 mod logs;
 mod mutate;
 mod nodes;
+mod portforward;
 mod shell_env;
 mod terminal;
 mod watch;
@@ -27,6 +28,7 @@ pub fn run() {
         .manage(watch::WatchState::default())
         .manage(exec::ExecState::default())
         .manage(terminal::TerminalState::default())
+        .manage(portforward::ForwardState::default())
         .invoke_handler(tauri::generate_handler![
             app_version,
             kube::list_contexts,
@@ -45,6 +47,9 @@ pub fn run() {
             terminal::terminal_write,
             terminal::terminal_resize,
             terminal::terminal_close,
+            portforward::port_forward_start,
+            portforward::port_forward_list,
+            portforward::port_forward_stop,
             mutate::get_yaml,
             mutate::apply_yaml,
             mutate::delete_resource,

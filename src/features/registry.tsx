@@ -11,6 +11,7 @@ import * as Net from "./network/views";
 import * as Storage from "./storage/views";
 import * as Cluster from "./cluster/views";
 import { CRDsView } from "./crds/views";
+import { PortForwardsView } from "./portforward/PortForwardsView";
 
 export type ViewProps = { context: string; namespaces: string[]; navigate?: (key: string) => void };
 
@@ -47,6 +48,7 @@ export const VIEWS: Record<string, ComponentType<ViewProps>> = {
   "Network/Ingresses": Net.IngressesView,
   "Network/Ingress Classes": Net.IngressClassesView,
   "Network/Network Policies": Net.NetworkPoliciesView,
+  "Network/Port Forwarding": PortForwardsView,
 
   "Storage/Persistent Volume Claims": Storage.PVCsView,
   "Storage/Persistent Volumes": Storage.PVsView,
