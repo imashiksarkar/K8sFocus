@@ -15,7 +15,7 @@ export const NAV: NavGroup[] = [
   },
   {
     label: "Config", icon: FileCog,
-    items: ["ConfigMaps", "Secrets", "Resource Quotas", "Limit Ranges", "HPA", "VPA", "Pod Disruption Budgets", "Priority Classes", "Runtime Classes", "Leases", "Webhook Configs"],
+    items: ["ConfigMaps", "Secrets", "Resource Quotas", "Limit Ranges", "HPA", "VPA", "Pod Disruption Budgets", "Priority Classes", "Runtime Classes", "Leases", "Mutating Webhooks", "Validating Webhooks"],
   },
   { label: "Network", icon: Network, items: ["Services", "Endpoints", "EndpointSlices", "Ingresses", "Ingress Classes", "Network Policies", "Port Forwarding"] },
   { label: "Storage", icon: HardDrive, items: ["Persistent Volume Claims", "Persistent Volumes", "Storage Classes"] },
