@@ -13,6 +13,7 @@ type WatchEvent =
  */
 export function useWatch<T extends KObject = KObject>(
   context: string | undefined, resource: ResourceRef, namespaces: string[] = [],
+  opts: { fieldSelector?: string } = {},
 ) {
   const [items, setItems] = useState<Map<string, T>>(new Map());
   const [ready, setReady] = useState(false);
@@ -20,6 +21,7 @@ export function useWatch<T extends KObject = KObject>(
 
   const single = resource.namespaced && namespaces.length === 1 ? namespaces[0] : undefined;
   const resKey = JSON.stringify(resource);
+  const fieldSelector = opts.fieldSelector;
 
   useEffect(() => {
     if (!context) return;
@@ -47,7 +49,7 @@ export function useWatch<T extends KObject = KObject>(
       }
     };
 
-    invoke<number>("watch_resource", { context, resource, namespace: single, onEvent: ch })
+    invoke<number>("watch_resource", { context, resource, namespace: single, fieldSelector, onEvent: ch })
       .then((wid) => { if (cancelled) invoke("stop_watch", { id: wid }); else id = wid; })
       .catch((e) => setError(String(e)));
 
@@ -56,7 +58,7 @@ export function useWatch<T extends KObject = KObject>(
       if (id !== undefined) invoke("stop_watch", { id });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, resKey, single]);
+  }, [context, resKey, single, fieldSelector]);
 
   const nsKey = namespaces.join(",");
   const list = useMemo(() => {

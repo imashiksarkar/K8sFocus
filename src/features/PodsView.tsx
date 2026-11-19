@@ -1,4 +1,6 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { DetailsPanel } from "@/components/details/DetailsPanel";
+import { PodDetails } from "./PodDetails";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { ResourceTable } from "@/components/resource-table/ResourceTable";
 import { commonColumns, kobjectId, searchKObject } from "@/components/resource-table/columns";
@@ -64,16 +66,28 @@ function podColumns(): ColumnDef<KObject, any>[] {
 export function PodsView({ context, namespaces }: { context: string; namespaces: string[] }) {
   const { items, ready, error } = useWatch(context, R.pods, namespaces);
   const columns = useMemo(podColumns, []);
+  const [selected, setSelected] = useState<string>();
+  const close = useCallback(() => setSelected(undefined), []);
+  // live copy from the watch; disappears (panel closes) if the pod is deleted
+  const pod = selected ? items.find((p) => p.metadata.uid === selected) : undefined;
+
   return (
-    <ResourceTable
-      id="pods"
-      items={items}
-      columns={columns}
-      getRowId={kobjectId}
-      searchText={searchKObject}
-      ready={ready}
-      error={error}
-      defaultSort={[{ id: "namespace", desc: false }, { id: "name", desc: false }]}
-    />
+    <div className="flex min-h-0 flex-1">
+      <ResourceTable
+        id="pods"
+        items={items}
+        columns={columns}
+        getRowId={kobjectId}
+        searchText={searchKObject}
+        ready={ready}
+        error={error}
+        defaultSort={[{ id: "namespace", desc: false }, { id: "name", desc: false }]}
+        onRowClick={(p) => setSelected(p.metadata.uid === selected ? undefined : p.metadata.uid)}
+        selectedRowId={selected}
+      />
+      <DetailsPanel context={context} object={pod && { kind: "Pod", ...pod }} onClose={close}>
+        {pod && <PodDetails pod={pod} />}
+      </DetailsPanel>
+    </div>
   );
 }

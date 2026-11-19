@@ -64,6 +64,7 @@ pub async fn watch_resource(
     context: String,
     resource: ResourceRef,
     namespace: Option<String>,
+    field_selector: Option<String>,
     on_event: Channel<WatchEvent>,
 ) -> Result<u64, String> {
     let client = client_for(&kube, &context).await?;
@@ -76,7 +77,11 @@ pub async fn watch_resource(
 
     let id = watches.next_id.fetch_add(1, Ordering::Relaxed);
     let handle = tauri::async_runtime::spawn(async move {
-        let mut stream = watcher::watcher(api, watcher::Config::default()).boxed();
+        let mut cfg = watcher::Config::default();
+        if let Some(fs) = field_selector.filter(|f| !f.is_empty()) {
+            cfg = cfg.fields(&fs);
+        }
+        let mut stream = watcher::watcher(api, cfg).boxed();
         while let Some(ev) = stream.next().await {
             let msg = match ev {
                 Ok(Event::Init) => WatchEvent::Init,
