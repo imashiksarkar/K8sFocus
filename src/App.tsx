@@ -62,6 +62,13 @@ export default function App() {
     setDockActive(id);
     setDockOpen(true);
   }
+  function openTerminal() {
+    const n = dockTabs.filter((t) => t.kind === "terminal").length + 1;
+    const id = `terminal:${Date.now()}`;
+    setDockTabs((tabs) => [...tabs, { id, kind: "terminal", title: `Terminal ${n}`, context: cluster?.context }]);
+    setDockActive(id);
+    setDockOpen(true);
+  }
   const openLogs = (pod: KObject, container?: string) => openPodTab("logs", pod, container);
   const openShell = (pod: KObject, container?: string) => openPodTab("shell", pod, container);
   function closeTab(id: string) {
@@ -302,11 +309,16 @@ export default function App() {
 
         {/* Status bar */}
         <footer className="flex h-6 items-center gap-3 border-t bg-sidebar px-3 text-xs text-muted-foreground">
-          <button className="flex items-center gap-1 hover:text-foreground disabled:opacity-50" disabled={!dockTabs.length}
-            onClick={() => setDockOpen((o) => !o)} title="Toggle dock">
+          <button className="flex items-center gap-1 hover:text-foreground" onClick={openTerminal}
+            title={cluster ? `New local terminal (kubectl → ${cluster.context})` : "New local terminal"}>
             <TerminalSquare className="size-3.5" />
-            <span>Dock{dockTabs.length > 0 && ` (${dockTabs.length})`}</span>
+            <span>Terminal</span>
           </button>
+          {dockTabs.length > 0 && (
+            <button className="hover:text-foreground" onClick={() => setDockOpen((o) => !o)} title="Show / hide dock">
+              Dock ({dockTabs.length})
+            </button>
+          )}
           <span className="ml-auto">v0.1.0</span>
         </footer>
       </div>

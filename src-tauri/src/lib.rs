@@ -5,6 +5,7 @@ mod logs;
 mod mutate;
 mod nodes;
 mod shell_env;
+mod terminal;
 mod watch;
 
 #[tauri::command]
@@ -25,6 +26,7 @@ pub fn run() {
         .manage(kube::KubeState::default())
         .manage(watch::WatchState::default())
         .manage(exec::ExecState::default())
+        .manage(terminal::TerminalState::default())
         .invoke_handler(tauri::generate_handler![
             app_version,
             kube::list_contexts,
@@ -39,6 +41,10 @@ pub fn run() {
             exec::exec_write,
             exec::exec_resize,
             exec::exec_close,
+            terminal::terminal_start,
+            terminal::terminal_write,
+            terminal::terminal_resize,
+            terminal::terminal_close,
             mutate::get_yaml,
             mutate::apply_yaml,
             mutate::delete_resource,
