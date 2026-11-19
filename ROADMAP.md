@@ -62,7 +62,7 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 - [~] **T13 Config views.** ConfigMaps, Secrets (base64 reveal), quotas, limits, HPA, PDB and the rest of the Config section.
 - [~] **T14 Network and Storage views.**
 - [~] **T15 Namespaces, Events, and the RBAC views.**
-- [ ] **T16 CRDs and generic custom resource tables.**
+- [~] **T16 CRDs and generic custom resource tables.**
 
 ### Phase 4: Dock and interactive features
 - [ ] **T17 Dock panel.** Resizable bottom panel with tabs.

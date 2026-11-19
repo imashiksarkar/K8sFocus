@@ -39,6 +39,7 @@ export const R = {
   clusterroles: { group: "rbac.authorization.k8s.io", version: "v1", kind: "ClusterRole", plural: "clusterroles", namespaced: false },
   rolebindings: { group: "rbac.authorization.k8s.io", version: "v1", kind: "RoleBinding", plural: "rolebindings", namespaced: true },
   clusterrolebindings: { group: "rbac.authorization.k8s.io", version: "v1", kind: "ClusterRoleBinding", plural: "clusterrolebindings", namespaced: false },
+  crds: { group: "apiextensions.k8s.io", version: "v1", kind: "CustomResourceDefinition", plural: "customresourcedefinitions", namespaced: false },
   events: { group: "", version: "v1", kind: "Event", plural: "events", namespaced: true },
   namespaces: { group: "", version: "v1", kind: "Namespace", plural: "namespaces", namespaced: false },
 } satisfies Record<string, ResourceRef>;

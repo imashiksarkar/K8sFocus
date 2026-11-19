@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Plus, TerminalSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,9 @@ import { ReadOnlyToggle } from "@/features/ReadOnlyToggle";
 import { Hotbar } from "@/features/Hotbar";
 import { AddClusterDialog } from "@/features/AddClusterDialog";
 import { VIEWS } from "@/features/registry";
+import { CustomResourceView } from "@/features/crds/views";
+import { useWatch } from "@/lib/useWatch";
+import { R } from "@/lib/resources";
 import { NamespacePicker } from "@/features/NamespacePicker";
 
 /** App shell. Layout mirrors Lens: hotbar | cluster sidebar | main view | status bar. */
@@ -28,6 +31,21 @@ export default function App() {
   const [editorTarget, setEditorTarget] = useState<EditorTarget>();
   const [deleteTarget, setDeleteTarget] = useState<ObjRef>();
   const savedCluster = cluster && saved.find((c) => c.context === cluster.context);
+  // T16: CRDs drive a dynamic "Custom Resources" sidebar section
+  const { items: crds } = useWatch(cluster?.context, R.crds);
+  const crdGroups = useMemo(() => {
+    const m = new Map<string, typeof crds>();
+    for (const c of crds) {
+      const g = c.spec?.group ?? "";
+      m.set(g, [...(m.get(g) ?? []), c]);
+    }
+    return [...m.entries()].sort(([a], [b]) => a.localeCompare(b))
+      .map(([g, list]) => [g, list.sort((a, b) => a.spec.names.kind.localeCompare(b.spec.names.kind))] as const);
+  }, [crds]);
+  const activeCrd = active.startsWith("Custom Resources/crd:")
+    ? crds.find((c) => c.metadata.name === active.slice("Custom Resources/crd:".length))
+    : undefined;
+  const title = activeCrd ? activeCrd.spec.names.kind : active.split("/")[1];
   const readOnly = isReadOnly(savedCluster);
   function setReadOnly(ro: boolean) {
     if (!cluster) return;
@@ -105,7 +123,7 @@ export default function App() {
             <ScrollArea className="min-h-0 flex-1">
               <ul className="p-2 text-sm">
                 {NAV.map((g) => {
-                  const single = g.items.length === 1;
+                  const single = g.items.length === 1 && g.label !== "Custom Resources";
                   const expanded = open === g.label;
                   return (
                     <li key={g.label}>
@@ -139,6 +157,30 @@ export default function App() {
                               </li>
                             );
                           })}
+                          {g.label === "Custom Resources" && crdGroups.map(([group, list]) => (
+                            <li key={group}>
+                              <p className="mt-2 truncate px-2 text-[11px] font-semibold text-muted-foreground" title={group}>{group}</p>
+                              <ul>
+                                {list.map((c) => {
+                                  const key = `Custom Resources/crd:${c.metadata.name}`;
+                                  return (
+                                    <li key={key}>
+                                      <button
+                                        onClick={() => setActive(key)}
+                                        title={c.metadata.name}
+                                        className={cn(
+                                          "w-full truncate rounded-md px-2 py-1 text-left text-sidebar-foreground/70 hover:bg-sidebar-accent",
+                                          active === key && "bg-sidebar-accent text-primary",
+                                        )}
+                                      >
+                                        {c.spec.names.kind}
+                                      </button>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </li>
+                          ))}
                         </ul>
                       )}
                     </li>
@@ -151,7 +193,7 @@ export default function App() {
           {/* Main */}
           <main className="flex min-w-0 flex-1 flex-col">
             <header className="flex h-12 items-center gap-3 border-b px-4">
-              <h1 className="text-sm font-semibold">{active.split("/")[1]}</h1>
+              <h1 className="text-sm font-semibold">{title}</h1>
               {cluster && (
                 <>
                   <NamespacePicker context={cluster.context} value={namespaces} onChange={setNamespaces} />
@@ -174,12 +216,15 @@ export default function App() {
                 {connectError} <span className="opacity-60">(click to dismiss)</span>
               </button>
             )}
-            {cluster && VIEWS[active] ? (
+            {cluster && (VIEWS[active] || activeCrd) ? (
               <ClusterContext.Provider value={{
                 context: cluster.context, readOnly,
                 openEditor: setEditorTarget, confirmDelete: setDeleteTarget,
               }}>
                 {(() => {
+                  if (activeCrd) {
+                    return <CustomResourceView key={`${cluster.context}/${active}`} crd={activeCrd} context={cluster.context} namespaces={namespaces} />;
+                  }
                   const View = VIEWS[active];
                   return <View key={`${cluster.context}/${active}`} context={cluster.context} namespaces={namespaces} navigate={setActive} />;
                 })()}

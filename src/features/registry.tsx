@@ -10,6 +10,7 @@ import * as Config from "./config/views";
 import * as Net from "./network/views";
 import * as Storage from "./storage/views";
 import * as Cluster from "./cluster/views";
+import { CRDsView } from "./crds/views";
 
 export type ViewProps = { context: string; namespaces: string[]; navigate?: (key: string) => void };
 
@@ -59,4 +60,6 @@ export const VIEWS: Record<string, ComponentType<ViewProps>> = {
   "Access Control/Roles": Cluster.RolesView,
   "Access Control/Cluster Role Bindings": Cluster.ClusterRoleBindingsView,
   "Access Control/Role Bindings": Cluster.RoleBindingsView,
+
+  "Custom Resources/Definitions": CRDsView,
 };
