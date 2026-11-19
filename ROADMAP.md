@@ -50,7 +50,7 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 
 ### Phase 2: Generic resource engine
 - [~] **T5 Generic list and watch.** A Rust command that lists and watches any GVK and streams add/update/delete events to the frontend store (zustand).
-- [ ] **T6 Resource table component.** A virtualized table (TanStack Table plus virtual scrolling) with sorting, search, column visibility, multi-select and an age column that updates live.
+- [~] **T6 Resource table component.** A virtualized table (TanStack Table plus virtual scrolling) with sorting, search, column visibility, multi-select and an age column that updates live.
 - [ ] **T7 Details drawer.** Metadata, labels, annotations, owner references, events for the object and status conditions.
 - [ ] **T8 YAML editor.** Monaco editor that loads YAML, edits it, then applies the change with server-side apply. Also covers create from YAML and delete with confirmation.
 

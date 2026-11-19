@@ -11,6 +11,8 @@ export default defineConfig(() => ({
   resolve: {
     alias: { "@": new URL("./src", import.meta.url).pathname },
   },
+  // Desktop app loads from disk; large chunks are fine.
+  build: { chunkSizeWarningLimit: 4000 },
   // Tauri: keep rust errors visible, fixed port, don't watch src-tauri
   clearScreen: false,
   server: {
