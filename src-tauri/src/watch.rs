@@ -21,8 +21,8 @@ use crate::kube::{KubeState, client_for};
 
 #[derive(Default)]
 pub struct WatchState {
-    next_id: AtomicU64,
-    tasks: Mutex<HashMap<u64, JoinHandle<()>>>,
+    pub(crate) next_id: AtomicU64,
+    pub(crate) tasks: Mutex<HashMap<u64, JoinHandle<()>>>,
 }
 
 #[derive(Deserialize)]

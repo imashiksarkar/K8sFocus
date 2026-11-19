@@ -16,6 +16,9 @@ import { AddClusterDialog } from "@/features/AddClusterDialog";
 import { VIEWS } from "@/features/registry";
 import { CustomResourceView } from "@/features/crds/views";
 import { useWatch } from "@/lib/useWatch";
+import { Dock } from "@/components/dock/Dock";
+import type { DockTab } from "@/components/dock/types";
+import type { KObject } from "@/lib/resources";
 import { R } from "@/lib/resources";
 import { NamespacePicker } from "@/features/NamespacePicker";
 
@@ -30,6 +33,39 @@ export default function App() {
   const [cluster, setCluster] = useState<ClusterInfo>();
   const [editorTarget, setEditorTarget] = useState<EditorTarget>();
   const [deleteTarget, setDeleteTarget] = useState<ObjRef>();
+  // T17: bottom dock
+  const [dockTabs, setDockTabs] = useState<DockTab[]>([]);
+  const [dockActive, setDockActive] = useState<string>();
+  const [dockOpen, setDockOpen] = useState(true);
+  const [dockHeight, setDockHeight] = useState(() => {
+    try { return Number(localStorage.getItem("dockHeight")) || 320; } catch { return 320; }
+  });
+  function resizeDock(h: number) {
+    setDockHeight(h);
+    try { localStorage.setItem("dockHeight", String(h)); } catch { /* ignore */ }
+  }
+  function openLogs(pod: KObject, container?: string) {
+    if (!cluster) return;
+    const containers = [
+      ...(pod.spec?.initContainers ?? []).map((c: any) => c.name),
+      ...(pod.spec?.containers ?? []).map((c: any) => c.name),
+    ];
+    const c = container ?? pod.metadata.annotations?.["kubectl.kubernetes.io/default-container"] ?? pod.spec?.containers?.[0]?.name;
+    const id = `logs:${cluster.context}/${pod.metadata.namespace}/${pod.metadata.name}/${c}`;
+    setDockTabs((tabs) => tabs.some((t) => t.id === id) ? tabs : [...tabs, {
+      id, kind: "logs", title: `${pod.metadata.name}${containers.length > 1 ? ` · ${c}` : ""}`,
+      context: cluster.context, namespace: pod.metadata.namespace!, pod: pod.metadata.name, containers, container: c,
+    }]);
+    setDockActive(id);
+    setDockOpen(true);
+  }
+  function closeTab(id: string) {
+    setDockTabs((tabs) => {
+      const next = tabs.filter((t) => t.id !== id);
+      if (dockActive === id) setDockActive(next[next.length - 1]?.id);
+      return next;
+    });
+  }
   const savedCluster = cluster && saved.find((c) => c.context === cluster.context);
   // T16: CRDs drive a dynamic "Custom Resources" sidebar section
   const { items: crds } = useWatch(cluster?.context, R.crds);
@@ -219,7 +255,7 @@ export default function App() {
             {cluster && (VIEWS[active] || activeCrd) ? (
               <ClusterContext.Provider value={{
                 context: cluster.context, readOnly,
-                openEditor: setEditorTarget, confirmDelete: setDeleteTarget,
+                openEditor: setEditorTarget, confirmDelete: setDeleteTarget, openLogs,
               }}>
                 {(() => {
                   if (activeCrd) {
@@ -251,13 +287,21 @@ export default function App() {
               </div>
             </div>
             )}
+            <Dock
+              tabs={dockTabs} active={dockActive} open={dockOpen} height={dockHeight}
+              onActivate={setDockActive} onClose={closeTab}
+              onToggle={() => setDockOpen((o) => !o)} onResize={resizeDock}
+            />
           </main>
         </div>
 
         {/* Status bar */}
         <footer className="flex h-6 items-center gap-3 border-t bg-sidebar px-3 text-xs text-muted-foreground">
-          <TerminalSquare className="size-3.5" />
-          <span>Terminal</span>
+          <button className="flex items-center gap-1 hover:text-foreground disabled:opacity-50" disabled={!dockTabs.length}
+            onClick={() => setDockOpen((o) => !o)} title="Toggle dock">
+            <TerminalSquare className="size-3.5" />
+            <span>Dock{dockTabs.length > 0 && ` (${dockTabs.length})`}</span>
+          </button>
           <span className="ml-auto">v0.1.0</span>
         </footer>
       </div>

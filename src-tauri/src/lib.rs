@@ -1,5 +1,6 @@
 mod catalog;
 mod kube;
+mod logs;
 mod mutate;
 mod nodes;
 mod shell_env;
@@ -19,6 +20,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(kube::KubeState::default())
         .manage(watch::WatchState::default())
         .invoke_handler(tauri::generate_handler![
@@ -29,6 +31,8 @@ pub fn run() {
             catalog::save_catalog,
             watch::watch_resource,
             watch::stop_watch,
+            logs::stream_logs,
+            logs::save_text_file,
             mutate::get_yaml,
             mutate::apply_yaml,
             mutate::delete_resource,

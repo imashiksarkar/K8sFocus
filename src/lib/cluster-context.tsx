@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import type { ObjRef } from "./k8s";
+import type { KObject } from "./resources";
 import type { EditorTarget } from "@/components/editor/YamlEditor";
 
 export type ClusterCtx = {
@@ -7,6 +8,8 @@ export type ClusterCtx = {
   readOnly: boolean;
   openEditor: (t: EditorTarget) => void;
   confirmDelete: (obj: ObjRef) => void;
+  /** Open a logs tab in the dock for a pod (optionally a specific container). */
+  openLogs: (pod: KObject, container?: string) => void;
 };
 
 export const ClusterContext = createContext<ClusterCtx | null>(null);

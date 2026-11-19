@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { PodDetails } from "./PodDetails";
 import { ResourceView } from "@/components/resource-view/ResourceView";
+import { ScrollText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useCluster } from "@/lib/cluster-context";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { commonColumns } from "@/components/resource-table/columns";
 import { R, type KObject } from "@/lib/resources";
@@ -69,6 +72,16 @@ export function PodsView({ context, namespaces }: { context: string; namespaces:
       resource={R.pods}
       columns={columns}
       details={(p) => <PodDetails pod={p} />}
+      actions={(p) => <LogsButton pod={p} />}
     />
+  );
+}
+
+function LogsButton({ pod }: { pod: KObject }) {
+  const { openLogs } = useCluster();
+  return (
+    <Button variant="ghost" size="icon" className="size-7" title="Logs" onClick={() => openLogs(pod)}>
+      <ScrollText />
+    </Button>
   );
 }

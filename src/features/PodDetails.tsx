@@ -3,9 +3,11 @@ import { Conditions, Fields, KVChips, Section } from "@/components/details/parts
 import type { KObject } from "@/lib/resources";
 import { cn } from "@/lib/utils";
 import { podStatus } from "./PodsView";
+import { useCluster } from "@/lib/cluster-context";
 
 /** Pod-specific sections for the details panel. Never resolves secret values. */
 export function PodDetails({ pod }: { pod: KObject }) {
+  const { openLogs } = useCluster();
   const spec = pod.spec ?? {};
   const st = pod.status ?? {};
   const statuses: any[] = [...(st.initContainerStatuses ?? []), ...(st.containerStatuses ?? [])];
@@ -32,10 +34,10 @@ export function PodDetails({ pod }: { pod: KObject }) {
       </Section>
 
       {(spec.initContainers ?? []).map((c: any) => (
-        <Container key={`init-${c.name}`} c={c} status={statusOf(c.name)} init />
+        <Container key={`init-${c.name}`} c={c} status={statusOf(c.name)} init onLogs={() => openLogs(pod, c.name)} />
       ))}
       {(spec.containers ?? []).map((c: any) => (
-        <Container key={c.name} c={c} status={statusOf(c.name)} />
+        <Container key={c.name} c={c} status={statusOf(c.name)} onLogs={() => openLogs(pod, c.name)} />
       ))}
 
       {spec.volumes?.length > 0 && (
@@ -67,13 +69,14 @@ function stateText(s: any): { text: string; ok: boolean } {
   return { text: `terminated: ${t.reason ?? ""} (exit ${t.exitCode})`, ok: t.exitCode === 0 };
 }
 
-function Container({ c, status, init }: { c: any; status?: any; init?: boolean }) {
+function Container({ c, status, init, onLogs }: { c: any; status?: any; init?: boolean; onLogs: () => void }) {
   const state = stateText(status);
   const last = status?.lastState?.terminated;
   return (
     <Section title={`${init ? "Init container" : "Container"} · ${c.name}`}>
       <Fields rows={[
         ["State", <span className={cn(state.ok ? "text-emerald-400" : "text-primary")}>{state.text}</span>],
+        ["Logs", <button className="text-primary hover:underline" onClick={onLogs}>View logs</button>],
         ["Last state", last && `terminated: ${last.reason ?? ""} (exit ${last.exitCode}) at ${new Date(last.finishedAt).toLocaleString()}`],
         ["Ready", status && String(status.ready)],
         ["Restarts", status?.restartCount],
