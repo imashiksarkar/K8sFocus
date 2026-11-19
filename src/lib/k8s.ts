@@ -23,3 +23,9 @@ export function age(iso?: string) {
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
   return `${Math.floor(s / 86400)}d`;
 }
+
+export type SavedCluster = { context: string; name: string; color?: string };
+export const catalog = {
+  load: () => invoke<SavedCluster[]>("load_catalog"),
+  save: (clusters: SavedCluster[]) => invoke<void>("save_catalog", { clusters }),
+};

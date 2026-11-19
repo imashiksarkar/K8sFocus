@@ -1,25 +1,24 @@
 import { useEffect, useState } from "react";
-import { ChevronRight, Plus, Settings2, TerminalSquare } from "lucide-react";
+import { ChevronRight, Plus, TerminalSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { NAV } from "@/components/layout/nav";
 import { cn } from "@/lib/utils";
-import { k8s, type ClusterInfo } from "@/lib/k8s";
+import { catalog, k8s, type ClusterInfo, type SavedCluster } from "@/lib/k8s";
+import { Hotbar } from "@/features/Hotbar";
 import { AddClusterDialog } from "@/features/AddClusterDialog";
 import { PodsView } from "@/features/PodsView";
 
-/**
- * App shell skeleton (Task T0). Layout mirrors Lens:
- * hotbar | cluster sidebar | main view, with a dock (terminal/logs) and status bar.
- * Everything here is static placeholder data until the Rust kube backend lands (T1+).
- */
+/** App shell. Layout mirrors Lens: hotbar | cluster sidebar | main view | status bar. */
 export default function App() {
   const [open, setOpen] = useState<string>("Workloads");
   const [active, setActive] = useState("Workloads/Pods");
   const [addOpen, setAddOpen] = useState(false);
-  const [clusters, setClusters] = useState<ClusterInfo[]>([]);
+  const [saved, setSaved] = useState<SavedCluster[]>([]);
+  const [connecting, setConnecting] = useState<string>();
+  const [connectError, setConnectError] = useState<string>();
   const [cluster, setCluster] = useState<ClusterInfo>();
   const [namespaces, setNamespaces] = useState<string[]>([]);
   const [namespace, setNamespace] = useState("");
@@ -30,8 +29,37 @@ export default function App() {
     if (cluster) k8s.listNamespaces(cluster.context).then(setNamespaces).catch(() => {});
   }, [cluster]);
 
+  useEffect(() => {
+    catalog.load().then(setSaved).catch((e) => setConnectError(`Could not load saved clusters: ${e}`));
+  }, []);
+
+  function updateSaved(next: SavedCluster[]) {
+    setSaved(next);
+    catalog.save(next).catch((e) => setConnectError(`Could not save clusters: ${e}`));
+    if (cluster && !next.some((c) => c.context === cluster.context)) setCluster(undefined);
+  }
+
+  async function selectSaved(c: SavedCluster) {
+    if (cluster?.context === c.context) return;
+    setConnecting(c.context);
+    setConnectError(undefined);
+    try {
+      onConnected(await k8s.connect(c.context));
+    } catch (e) {
+      setConnectError(`${c.name}: ${e}`);
+    } finally {
+      setConnecting(undefined);
+    }
+  }
+
   function onConnected(c: ClusterInfo) {
-    setClusters((cs) => (cs.some((x) => x.context === c.context) ? cs : [...cs, c]));
+    setSaved((cs) => {
+      if (cs.some((x) => x.context === c.context)) return cs;
+      const next = [...cs, { context: c.context, name: c.context }];
+      catalog.save(next).catch(() => {});
+      return next;
+    });
+    setConnectError(undefined);
     setCluster(c);
     setActive("Workloads/Pods");
     setOpen("Workloads");
@@ -41,43 +69,22 @@ export default function App() {
     <TooltipProvider delayDuration={300}>
       <div className="flex h-full flex-col">
         <div className="flex min-h-0 flex-1">
-          {/* Hotbar */}
-          <aside className="flex w-14 flex-col items-center gap-2 border-r bg-sidebar py-3">
-            <div className="flex size-9 items-center justify-center rounded-md bg-primary font-bold text-primary-foreground">
-              K
-            </div>
-            {clusters.map((c) => (
-              <Tooltip key={c.context}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setCluster(c)}
-                    className={cn(
-                      "flex size-9 items-center justify-center rounded-md bg-secondary text-xs font-semibold uppercase",
-                      cluster?.context === c.context && "ring-2 ring-primary",
-                    )}
-                  >
-                    {c.context.slice(0, 2)}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right">{c.context}</TooltipContent>
-              </Tooltip>
-            ))}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={() => setAddOpen(true)}><Plus /></Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Add cluster</TooltipContent>
-            </Tooltip>
-            <div className="mt-auto">
-              <Button variant="ghost" size="icon"><Settings2 /></Button>
-            </div>
-          </aside>
+          <Hotbar
+            clusters={saved}
+            active={cluster?.context}
+            connecting={connecting}
+            onSelect={selectSaved}
+            onAdd={() => setAddOpen(true)}
+            onChange={updateSaved}
+          />
 
           {/* Cluster sidebar */}
           <nav className="flex w-60 flex-col border-r bg-sidebar">
             <div className="flex h-12 items-center gap-2 border-b px-4 text-sm font-semibold">
               <span className={cn("size-2 rounded-full", cluster ? "bg-emerald-400" : "bg-muted-foreground")} />
-              <span className="truncate">{cluster?.context ?? "No cluster selected"}</span>
+              <span className="truncate">
+                {cluster ? (saved.find((c) => c.context === cluster.context)?.name ?? cluster.context) : "No cluster selected"}
+              </span>
             </div>
             <ScrollArea className="min-h-0 flex-1">
               <ul className="p-2 text-sm">
@@ -142,6 +149,14 @@ export default function App() {
                 </>
               )}
             </header>
+            {cluster && connectError && (
+              <button
+                onClick={() => setConnectError(undefined)}
+                className="mx-4 mt-2 rounded-md bg-destructive/15 p-2 text-left text-xs whitespace-pre-wrap text-destructive"
+              >
+                {connectError} <span className="opacity-60">(click to dismiss)</span>
+              </button>
+            )}
             {cluster && active === "Workloads/Pods" ? (
               <PodsView context={cluster.context} namespace={namespace} />
             ) : cluster ? (
@@ -154,8 +169,13 @@ export default function App() {
                 <p className="text-lg font-semibold">
                   K8s<span className="text-primary">Focus</span>
                 </p>
+                {connectError && (
+                  <p className="mx-auto mt-3 max-w-md whitespace-pre-wrap rounded-md bg-destructive/15 p-2 text-left text-xs text-destructive select-text">
+                    {connectError}
+                  </p>
+                )}
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Connect a cluster from your kubeconfig to get started.
+                  {saved.length ? "Pick a cluster from the left bar, or add one." : "Connect a cluster from your kubeconfig to get started."}
                 </p>
                 <Button className="mt-4" onClick={() => setAddOpen(true)}><Plus /> Add cluster</Button>
               </div>
