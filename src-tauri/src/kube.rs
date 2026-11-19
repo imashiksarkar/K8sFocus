@@ -1,16 +1,14 @@
 //! Kubernetes access layer.
 //!
-//! SAFETY POLICY: this module is READ-ONLY. It only uses `list`/`get` style calls.
+//! SAFETY POLICY: this module is READ-ONLY. It only reads (list/get/watch).
 //! Any mutating operation (delete/patch/create/scale/...) must be added deliberately
 //! in a later roadmap task, behind an explicit user confirmation in the UI.
 
 use std::collections::HashMap;
 
-use k8s_openapi::api::core::v1::{Namespace, Pod};
 use kube::{
-    api::ListParams,
+    Client, Config,
     config::{KubeConfigOptions, Kubeconfig},
-    Api, Client, Config, ResourceExt,
 };
 use serde::Serialize;
 use tokio::sync::Mutex;
@@ -34,18 +32,6 @@ pub struct ClusterInfo {
     context: String,
     version: String,
     platform: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PodRow {
-    name: String,
-    namespace: String,
-    phase: String,
-    ready: String,
-    restarts: i32,
-    node: String,
-    created: Option<String>,
 }
 
 fn err(e: impl std::fmt::Display) -> String {
@@ -72,7 +58,7 @@ pub fn list_contexts() -> Result<Vec<ContextInfo>, String> {
         .collect())
 }
 
-async fn client_for(state: &KubeState, context: &str) -> Result<Client, String> {
+pub async fn client_for(state: &KubeState, context: &str) -> Result<Client, String> {
     if let Some(c) = state.clients.lock().await.get(context) {
         return Ok(c.clone());
     }
@@ -108,58 +94,4 @@ pub async fn connect(
             Err(err(e))
         }
     }
-}
-
-#[tauri::command]
-pub async fn list_namespaces(
-    state: tauri::State<'_, KubeState>,
-    context: String,
-) -> Result<Vec<String>, String> {
-    let client = client_for(&state, &context).await?;
-    let api: Api<Namespace> = Api::all(client);
-    let list = api.list(&ListParams::default()).await.map_err(err)?;
-    Ok(list.items.iter().map(|n| n.name_any()).collect())
-}
-
-#[tauri::command]
-pub async fn list_pods(
-    state: tauri::State<'_, KubeState>,
-    context: String,
-    namespace: Option<String>,
-) -> Result<Vec<PodRow>, String> {
-    let client = client_for(&state, &context).await?;
-    let api: Api<Pod> = match namespace.as_deref() {
-        Some(ns) if !ns.is_empty() => Api::namespaced(client, ns),
-        _ => Api::all(client),
-    };
-    let list = api.list(&ListParams::default()).await.map_err(err)?;
-    Ok(list
-        .items
-        .iter()
-        .map(|p| {
-            let statuses = p
-                .status
-                .as_ref()
-                .and_then(|s| s.container_statuses.clone())
-                .unwrap_or_default();
-            let ready = statuses.iter().filter(|c| c.ready).count();
-            PodRow {
-                name: p.name_any(),
-                namespace: p.namespace().unwrap_or_default(),
-                phase: p
-                    .status
-                    .as_ref()
-                    .and_then(|s| s.phase.clone())
-                    .unwrap_or_default(),
-                ready: format!("{}/{}", ready, statuses.len()),
-                restarts: statuses.iter().map(|c| c.restart_count).sum(),
-                node: p
-                    .spec
-                    .as_ref()
-                    .and_then(|s| s.node_name.clone())
-                    .unwrap_or_default(),
-                created: p.metadata.creation_timestamp.as_ref().map(|t| t.0.to_string()),
-            }
-        })
-        .collect())
 }

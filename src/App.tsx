@@ -10,6 +10,7 @@ import { catalog, k8s, type ClusterInfo, type SavedCluster } from "@/lib/k8s";
 import { Hotbar } from "@/features/Hotbar";
 import { AddClusterDialog } from "@/features/AddClusterDialog";
 import { PodsView } from "@/features/PodsView";
+import { NamespacePicker } from "@/features/NamespacePicker";
 
 /** App shell. Layout mirrors Lens: hotbar | cluster sidebar | main view | status bar. */
 export default function App() {
@@ -20,14 +21,17 @@ export default function App() {
   const [connecting, setConnecting] = useState<string>();
   const [connectError, setConnectError] = useState<string>();
   const [cluster, setCluster] = useState<ClusterInfo>();
-  const [namespaces, setNamespaces] = useState<string[]>([]);
-  const [namespace, setNamespace] = useState("");
-
-  useEffect(() => {
-    setNamespaces([]);
-    setNamespace("");
-    if (cluster) k8s.listNamespaces(cluster.context).then(setNamespaces).catch(() => {});
-  }, [cluster]);
+  // T4: namespace selection remembered per cluster (empty = all)
+  const [nsByCluster, setNsByCluster] = useState<Record<string, string[]>>(() => {
+    try { return JSON.parse(localStorage.getItem("nsByCluster") ?? "{}"); } catch { return {}; }
+  });
+  const namespaces = (cluster && nsByCluster[cluster.context]) || [];
+  function setNamespaces(v: string[]) {
+    if (!cluster) return;
+    const next = { ...nsByCluster, [cluster.context]: v };
+    setNsByCluster(next);
+    try { localStorage.setItem("nsByCluster", JSON.stringify(next)); } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     catalog.load().then(setSaved).catch((e) => setConnectError(`Could not load saved clusters: ${e}`));
@@ -137,14 +141,7 @@ export default function App() {
               <h1 className="text-sm font-semibold">{active.split("/")[1]}</h1>
               {cluster && (
                 <>
-                  <select
-                    value={namespace}
-                    onChange={(e) => setNamespace(e.target.value)}
-                    className="h-7 rounded-md border bg-background px-2 text-xs"
-                  >
-                    <option value="">All namespaces</option>
-                    {namespaces.map((n) => <option key={n}>{n}</option>)}
-                  </select>
+<NamespacePicker context={cluster.context} value={namespaces} onChange={setNamespaces} />
                   <Badge variant="secondary" className="ml-auto">{cluster.version} · read-only</Badge>
                 </>
               )}
@@ -158,7 +155,7 @@ export default function App() {
               </button>
             )}
             {cluster && active === "Workloads/Pods" ? (
-              <PodsView context={cluster.context} namespace={namespace} />
+              <PodsView key={cluster.context} context={cluster.context} namespaces={namespaces} />
             ) : cluster ? (
               <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
                 Not implemented yet — see ROADMAP.md

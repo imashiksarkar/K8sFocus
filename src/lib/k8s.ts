@@ -3,16 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 // Typed wrappers around the Rust commands in src-tauri/src/kube.rs (all read-only).
 export type ContextInfo = { name: string; cluster: string; user: string; namespace?: string; current: boolean };
 export type ClusterInfo = { context: string; version: string; platform: string };
-export type PodRow = {
-  name: string; namespace: string; phase: string; ready: string;
-  restarts: number; node: string; created?: string;
-};
 
 export const k8s = {
   listContexts: () => invoke<ContextInfo[]>("list_contexts"),
   connect: (context: string) => invoke<ClusterInfo>("connect", { context }),
-  listNamespaces: (context: string) => invoke<string[]>("list_namespaces", { context }),
-  listPods: (context: string, namespace?: string) => invoke<PodRow[]>("list_pods", { context, namespace }),
 };
 
 export function age(iso?: string) {

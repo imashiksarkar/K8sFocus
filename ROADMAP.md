@@ -45,11 +45,11 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 ### Phase 1: Connecting to clusters
 - [x] **T1 Kubeconfig loader (Rust).** Parse the kubeconfig files, list contexts and send them to the UI. *Accept:* every context in `kubectl config get-contexts` appears in the UI.
 - [~] **T2 Connect to a cluster.** Build a `kube::Client` for each context, run a health check and show the server version. Support exec auth plugins (EKS `aws`, GKE `gke-gcloud-auth-plugin`, AKS `kubelogin`). macOS GUI apps don't inherit the shell `PATH`, so fix it by resolving the login shell `PATH`. *Accept:* connect to kind plus one cloud cluster.
-- [ ] **T3 Hotbar and cluster catalog.** Pin clusters, rename them, set an icon, save to the app config dir, and switch between clusters.
-- [ ] **T4 Namespace selector.** Choose one, several or all namespaces. Keep the selection per cluster.
+- [~] **T3 Hotbar and cluster catalog.** Pin clusters, rename them, set an icon, save to the app config dir, and switch between clusters.
+- [~] **T4 Namespace selector.** Choose one, several or all namespaces. Keep the selection per cluster.
 
 ### Phase 2: Generic resource engine
-- [ ] **T5 Generic list and watch.** A Rust command that lists and watches any GVK and streams add/update/delete events to the frontend store (zustand).
+- [~] **T5 Generic list and watch.** A Rust command that lists and watches any GVK and streams add/update/delete events to the frontend store (zustand).
 - [ ] **T6 Resource table component.** A virtualized table (TanStack Table plus virtual scrolling) with sorting, search, column visibility, multi-select and an age column that updates live.
 - [ ] **T7 Details drawer.** Metadata, labels, annotations, owner references, events for the object and status conditions.
 - [ ] **T8 YAML editor.** Monaco editor that loads YAML, edits it, then applies the change with server-side apply. Also covers create from YAML and delete with confirmation.

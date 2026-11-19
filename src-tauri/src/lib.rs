@@ -1,6 +1,7 @@
 mod catalog;
 mod kube;
 mod shell_env;
+mod watch;
 
 #[tauri::command]
 fn app_version() -> &'static str {
@@ -17,14 +18,15 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(kube::KubeState::default())
+        .manage(watch::WatchState::default())
         .invoke_handler(tauri::generate_handler![
             app_version,
             kube::list_contexts,
             kube::connect,
-            kube::list_namespaces,
-            kube::list_pods,
             catalog::load_catalog,
             catalog::save_catalog,
+            watch::watch_resource,
+            watch::stop_watch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
