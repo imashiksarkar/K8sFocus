@@ -19,6 +19,7 @@ K8sFocus is a desktop Kubernetes client that aims for feature parity with Lens. 
 - `bun run build`: type-check and build the frontend.
 - `bun run tauri build`: build the release installer for the current OS.
 - `cd src-tauri && cargo fmt && cargo clippy`: format and lint the Rust code.
+- `bun run tauri icon assets/icon.svg && rm -rf src-tauri/icons/android src-tauri/icons/ios`: regenerate all app icons from the source SVG.
 
 ## Rules
 - **Never run anything against a Kubernetes cluster.** Give the user the commands and the user runs them.

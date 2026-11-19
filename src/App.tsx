@@ -12,6 +12,7 @@ import { YamlEditor, type EditorTarget } from "@/components/editor/YamlEditor";
 import { DeleteDialog } from "@/components/editor/DeleteDialog";
 import { ReadOnlyToggle } from "@/features/ReadOnlyToggle";
 import { Hotbar } from "@/features/Hotbar";
+import { Logo } from "@/components/layout/Logo";
 import { AddClusterDialog } from "@/features/AddClusterDialog";
 import { VIEWS } from "@/features/registry";
 import { CustomResourceView } from "@/features/crds/views";
@@ -348,6 +349,7 @@ export default function App() {
             ) : (
             <div className="flex flex-1 items-center justify-center">
               <div className="text-center">
+                <Logo className="mx-auto mb-3 size-16 text-primary" />
                 <p className="text-lg font-semibold">
                   K8s<span className="text-primary">Focus</span>
                 </p>

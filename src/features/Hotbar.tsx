@@ -9,6 +9,7 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { SavedCluster } from "@/lib/k8s";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/layout/Logo";
 
 const COLORS = ["#facc15", "#38bdf8", "#4ade80", "#f472b6", "#a78bfa", "#fb923c"];
 
@@ -40,7 +41,9 @@ export function Hotbar({ clusters, active, connecting, onSelect, onAdd, onChange
 
   return (
     <aside className="flex w-14 flex-col items-center gap-2 border-r bg-sidebar py-3">
-      <div className="mb-1 flex size-9 items-center justify-center rounded-md bg-primary font-bold text-primary-foreground">K</div>
+      <div className="mb-1 flex size-9 items-center justify-center rounded-md bg-secondary text-primary" title="K8sFocus">
+        <Logo className="size-6" />
+      </div>
       {clusters.map((c) => (
         <ContextMenu key={c.context}>
           <Tooltip>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#27272a"/>
+      <stop offset="1" stop-color="#121214"/>
+    </linearGradient>
+    <linearGradient id="y" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fde047"/>
+      <stop offset="1" stop-color="#eab308"/>
+    </linearGradient>
+  </defs>
+  <!-- macOS-style squircle-ish tile with margin -->
+  <rect x="100" y="100" width="824" height="824" rx="190" fill="url(#bg)"/>
+  <rect x="100.5" y="100.5" width="823" height="823" rx="189.5" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="3"/>
+  <!-- focus brackets -->
+  <g fill="none" stroke="url(#y)" stroke-width="44" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M250 370 V290 Q250 250 290 250 H370"/>
+    <path d="M654 250 H734 Q774 250 774 290 V370"/>
+    <path d="M774 654 V734 Q774 774 734 774 H654"/>
+    <path d="M370 774 H290 Q250 774 250 734 V654"/>
+  </g>
+  <!-- K -->
+  <g fill="url(#y)">
+    <rect x="388" y="352" width="70" height="320" rx="16"/>
+    <path d="M458 512 L590 352 H676 L536 520 L686 672 H596 L458 530 Z"/>
+  </g>
+</svg>
