@@ -11,10 +11,10 @@ import { ConfirmAction } from "@/components/editor/ConfirmAction";
 import { useCluster } from "@/lib/cluster-context";
 import { age } from "@/lib/k8s";
 import { cn } from "@/lib/utils";
+import { usePrefs } from "@/lib/prefs";
 import { chartBaseName, helm, helmCharts, helmDate, type HelmRelease, type HelmRevision } from "./api";
 import { InstallDialog, type InstallTarget } from "./InstallDialog";
 
-const POLL = 10_000;
 const c = createColumnHelper<HelmRelease>();
 const statusColor = (s: string) =>
   s === "deployed" ? "text-emerald-400" : s === "failed" ? "text-destructive" : s.startsWith("pending") ? "text-primary" : "text-muted-foreground";
@@ -26,6 +26,7 @@ export function HelmReleasesView({ context, namespaces }: { context: string; nam
   const [error, setError] = useState<string>();
   const [selected, setSelected] = useState<string>();
   const single = namespaces.length === 1 ? namespaces[0] : undefined;
+  const pollMs = usePrefs().helmPollSecs * 1000;
 
   const load = useCallback(() => {
     helm.list(context, single)
@@ -36,9 +37,9 @@ export function HelmReleasesView({ context, namespaces }: { context: string; nam
 
   useEffect(() => {
     setReady(false); load();
-    const t = setInterval(load, POLL);
+    const t = setInterval(load, pollMs);
     return () => clearInterval(t);
-  }, [load]);
+  }, [load, pollMs]);
 
   const shown = useMemo(
     () => (namespaces.length > 1 ? items.filter((r) => namespaces.includes(r.namespace)) : items),

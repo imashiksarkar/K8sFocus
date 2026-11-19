@@ -25,7 +25,7 @@ fn valid_name(s: &str) -> Result<&str, String> {
 
 async fn helm(app: &AppHandle, context: &str, args: &[&str]) -> Result<String, String> {
     let kc = scoped_kubeconfig(app, context)?;
-    let out = Command::new("helm")
+    let out = Command::new(crate::prefs::helm_bin())
         .args(args)
         .env("KUBECONFIG", kc)
         .env("HELM_KUBECONTEXT", context)
@@ -220,7 +220,7 @@ fn valid_repo_name(s: &str) -> Result<&str, String> {
 
 /// Repo commands only touch the local helm config, never the cluster.
 async fn helm_local(args: &[&str]) -> Result<String, String> {
-    let out = Command::new("helm")
+    let out = Command::new(crate::prefs::helm_bin())
         .args(args)
         .output()
         .await
@@ -375,4 +375,12 @@ pub async fn helm_install(
     let res = helm(&app, &context, &args).await;
     let _ = std::fs::remove_file(&file);
     res
+}
+
+/// `helm version --short` without any cluster (for Preferences → Test).
+#[tauri::command]
+pub async fn helm_local_version() -> Result<String, String> {
+    helm_local(&["version", "--short"])
+        .await
+        .map(|s| s.trim().to_string())
 }

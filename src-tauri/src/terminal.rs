@@ -29,7 +29,7 @@ pub struct TerminalState {
 
 /// Write a kubeconfig containing only `context` (+ its cluster and user) to the app cache dir.
 pub fn scoped_kubeconfig(app: &AppHandle, context: &str) -> Result<PathBuf, String> {
-    let kc = Kubeconfig::read().map_err(|e| e.to_string())?;
+    let kc = crate::prefs::load_kubeconfig()?;
     let ctx = kc
         .contexts
         .iter()
@@ -81,6 +81,13 @@ pub fn scoped_kubeconfig(app: &AppHandle, context: &str) -> Result<PathBuf, Stri
 }
 
 fn default_shell() -> (String, Vec<String>) {
+    let custom = crate::prefs::get().shell;
+    if !custom.trim().is_empty() {
+        #[cfg(windows)]
+        return (custom.trim().to_string(), vec![]);
+        #[cfg(not(windows))]
+        return (custom.trim().to_string(), vec!["-l".into()]);
+    }
     #[cfg(windows)]
     {
         ("powershell.exe".into(), vec!["-NoLogo".into()])

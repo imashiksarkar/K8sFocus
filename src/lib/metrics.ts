@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { parseQuantity } from "./k8s";
 import type { ResourceRef } from "./resources";
+import { getPrefs } from "./prefs";
 
 /**
- * metrics-server polling (roadmap T22). metrics.k8s.io has no watch, so we list every 15s.
+ * metrics-server polling (roadmap T22). metrics.k8s.io has no watch, so we poll (interval from Preferences).
  * One shared poller per (context, kind) regardless of how many components subscribe.
  * Keeps the last HISTORY samples per object for sparklines.
  */
-const INTERVAL = 15_000;
 const HISTORY = 20;
 
 export type Usage = { cpu: number; memory: number; containers?: Record<string, { cpu: number; memory: number }> };
@@ -74,7 +74,7 @@ export function useMetrics(context: string | undefined, kind: "pods" | "nodes"):
       p = { snap: empty, subs: new Set() };
       pollers.set(key, p);
       poll(key, context, kind);
-      p.timer = window.setInterval(() => poll(key, context, kind), INTERVAL);
+      p.timer = window.setInterval(() => poll(key, context, kind), getPrefs().metricsIntervalSecs * 1000);
     }
     p.subs.add(setSnap);
     setSnap(p.snap);

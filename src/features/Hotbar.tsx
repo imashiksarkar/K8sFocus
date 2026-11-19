@@ -19,6 +19,7 @@ type Props = {
   onSelect: (c: SavedCluster) => void;
   onAdd: () => void;
   onChange: (clusters: SavedCluster[]) => void;
+  onSettings: () => void;
 };
 
 function initials(name: string) {
@@ -26,7 +27,7 @@ function initials(name: string) {
   return (parts.length > 1 ? parts[0][0] + parts[1][0] : name.slice(0, 2)).toUpperCase();
 }
 
-export function Hotbar({ clusters, active, connecting, onSelect, onAdd, onChange }: Props) {
+export function Hotbar({ clusters, active, connecting, onSelect, onAdd, onChange, onSettings }: Props) {
   const [editing, setEditing] = useState<SavedCluster>();
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>();
@@ -80,7 +81,7 @@ export function Hotbar({ clusters, active, connecting, onSelect, onAdd, onChange
         <TooltipContent side="right">Add cluster</TooltipContent>
       </Tooltip>
       <div className="mt-auto">
-        <Button variant="ghost" size="icon"><Settings2 /></Button>
+        <Button variant="ghost" size="icon" title="Preferences (⌘,)" onClick={onSettings}><Settings2 /></Button>
       </div>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(undefined)}>

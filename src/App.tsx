@@ -16,6 +16,7 @@ import { AddClusterDialog } from "@/features/AddClusterDialog";
 import { VIEWS } from "@/features/registry";
 import { CustomResourceView } from "@/features/crds/views";
 import { CommandPalette, type PaletteAction } from "@/features/palette/CommandPalette";
+import { PreferencesDialog } from "@/features/prefs/PreferencesDialog";
 import { useWatch } from "@/lib/useWatch";
 import { Dock } from "@/components/dock/Dock";
 import type { DockTab } from "@/components/dock/types";
@@ -39,6 +40,7 @@ export default function App() {
   // T27: command palette + shortcuts
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [focusUid, setFocusUid] = useState<string>();
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const [dockActive, setDockActive] = useState<string>();
   const [dockOpen, setDockOpen] = useState(true);
   const [dockHeight, setDockHeight] = useState(() => {
@@ -155,6 +157,7 @@ export default function App() {
     { id: "dock", label: dockOpen ? "Hide dock" : "Show dock", shortcut: "⌘J", run: () => setDockOpen((o) => !o), disabled: !dockTabs.length },
     { id: "create", label: "Create resource from YAML", shortcut: "⌘N", run: () => setEditorTarget({ mode: "create" }), disabled: !cluster },
     { id: "add", label: "Add cluster…", run: () => setAddOpen(true) },
+    { id: "prefs", label: "Preferences…", shortcut: "⌘,", run: () => setPrefsOpen(true) },
     { id: "overview", label: "Go to cluster overview", run: () => setActive("Cluster/Overview"), disabled: !cluster },
   ];
 
@@ -166,6 +169,7 @@ export default function App() {
     const k = e.key.toLowerCase();
     const inEditor = !!(e.target as HTMLElement).closest?.(".monaco-editor, .xterm");
     if (k === "k") { e.preventDefault(); setPaletteOpen((o) => !o); return; }
+    if (k === ",") { e.preventDefault(); setPrefsOpen(true); return; }
     if (inEditor) return;
     if (k === "j" && dockTabs.length) { e.preventDefault(); setDockOpen((o) => !o); }
     else if (k === "t") { e.preventDefault(); openTerminal(); }
@@ -189,6 +193,7 @@ export default function App() {
             onSelect={selectSaved}
             onAdd={() => setAddOpen(true)}
             onChange={updateSaved}
+            onSettings={() => setPrefsOpen(true)}
           />
 
           {/* Cluster sidebar */}
@@ -356,6 +361,7 @@ export default function App() {
         </footer>
       </div>
       <AddClusterDialog open={addOpen} onOpenChange={setAddOpen} onConnected={onConnected} />
+      <PreferencesDialog open={prefsOpen} onOpenChange={setPrefsOpen} />
       <CommandPalette
         open={paletteOpen} onOpenChange={setPaletteOpen}
         context={cluster?.context} clusters={saved} crds={crds} actions={actions}

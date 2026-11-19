@@ -5,10 +5,7 @@
 
 use std::collections::HashMap;
 
-use kube::{
-    Client, Config,
-    config::{KubeConfigOptions, Kubeconfig},
-};
+use kube::{Client, Config, config::KubeConfigOptions};
 use serde::Serialize;
 use tokio::sync::Mutex;
 
@@ -39,7 +36,7 @@ fn err(e: impl std::fmt::Display) -> String {
 
 #[tauri::command]
 pub fn list_contexts() -> Result<Vec<ContextInfo>, String> {
-    let kc = Kubeconfig::read().map_err(err)?;
+    let kc = crate::prefs::load_kubeconfig()?;
     let current = kc.current_context.clone();
     Ok(kc
         .contexts
@@ -65,7 +62,10 @@ pub async fn client_for(state: &KubeState, context: &str) -> Result<Client, Stri
         context: Some(context.to_string()),
         ..Default::default()
     };
-    let config = Config::from_kubeconfig(&opts).await.map_err(err)?;
+    let kc = crate::prefs::load_kubeconfig()?;
+    let config = Config::from_custom_kubeconfig(kc, &opts)
+        .await
+        .map_err(err)?;
     let client = Client::try_from(config).map_err(err)?;
     state
         .clients

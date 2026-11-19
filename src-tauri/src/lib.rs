@@ -6,6 +6,7 @@ mod logs;
 mod mutate;
 mod nodes;
 mod portforward;
+mod prefs;
 mod shell_env;
 mod terminal;
 mod watch;
@@ -30,7 +31,14 @@ pub fn run() {
         .manage(exec::ExecState::default())
         .manage(terminal::TerminalState::default())
         .manage(portforward::ForwardState::default())
+        .setup(|app| {
+            prefs::init(app.handle());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
+            prefs::load_prefs,
+            prefs::save_prefs,
+            prefs::kubeconfig_warnings,
             app_version,
             kube::list_contexts,
             kube::connect,
@@ -58,6 +66,7 @@ pub fn run() {
             helm::helm_rollback,
             helm::helm_uninstall,
             helm::helm_version,
+            helm::helm_local_version,
             helm::helm_repo_list,
             helm::helm_repo_add,
             helm::helm_repo_remove,
