@@ -6,7 +6,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { NAV } from "@/components/layout/nav";
 import { cn } from "@/lib/utils";
-import { catalog, k8s, type ClusterInfo, type SavedCluster } from "@/lib/k8s";
+import { catalog, isReadOnly, k8s, type ClusterInfo, type ObjRef, type SavedCluster } from "@/lib/k8s";
+import { ClusterContext } from "@/lib/cluster-context";
+import { YamlEditor, type EditorTarget } from "@/components/editor/YamlEditor";
+import { DeleteDialog } from "@/components/editor/DeleteDialog";
+import { ReadOnlyToggle } from "@/features/ReadOnlyToggle";
 import { Hotbar } from "@/features/Hotbar";
 import { AddClusterDialog } from "@/features/AddClusterDialog";
 import { PodsView } from "@/features/PodsView";
@@ -21,6 +25,14 @@ export default function App() {
   const [connecting, setConnecting] = useState<string>();
   const [connectError, setConnectError] = useState<string>();
   const [cluster, setCluster] = useState<ClusterInfo>();
+  const [editorTarget, setEditorTarget] = useState<EditorTarget>();
+  const [deleteTarget, setDeleteTarget] = useState<ObjRef>();
+  const savedCluster = cluster && saved.find((c) => c.context === cluster.context);
+  const readOnly = isReadOnly(savedCluster);
+  function setReadOnly(ro: boolean) {
+    if (!cluster) return;
+    updateSaved(saved.map((c) => (c.context === cluster.context ? { ...c, readOnly: ro } : c)));
+  }
   // T4: namespace selection remembered per cluster (empty = all)
   const [nsByCluster, setNsByCluster] = useState<Record<string, string[]>>(() => {
     try { return JSON.parse(localStorage.getItem("nsByCluster") ?? "{}"); } catch { return {}; }
@@ -141,8 +153,15 @@ export default function App() {
               <h1 className="text-sm font-semibold">{active.split("/")[1]}</h1>
               {cluster && (
                 <>
-<NamespacePicker context={cluster.context} value={namespaces} onChange={setNamespaces} />
-                  <Badge variant="secondary" className="ml-auto">{cluster.version} · read-only</Badge>
+                  <NamespacePicker context={cluster.context} value={namespaces} onChange={setNamespaces} />
+                  <Button
+                    variant="outline" size="sm" className="ml-auto h-7 text-xs"
+                    onClick={() => setEditorTarget({ mode: "create", namespace: namespaces.length === 1 ? namespaces[0] : undefined })}
+                  >
+                    <Plus /> Create
+                  </Button>
+                  <ReadOnlyToggle name={savedCluster?.name ?? cluster.context} readOnly={readOnly} onChange={setReadOnly} />
+                  <Badge variant="secondary">{cluster.version}</Badge>
                 </>
               )}
             </header>
@@ -155,7 +174,12 @@ export default function App() {
               </button>
             )}
             {cluster && active === "Workloads/Pods" ? (
-              <PodsView key={cluster.context} context={cluster.context} namespaces={namespaces} />
+              <ClusterContext.Provider value={{
+                context: cluster.context, readOnly,
+                openEditor: setEditorTarget, confirmDelete: setDeleteTarget,
+              }}>
+                <PodsView key={cluster.context} context={cluster.context} namespaces={namespaces} />
+              </ClusterContext.Provider>
             ) : cluster ? (
               <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
                 Not implemented yet — see ROADMAP.md
@@ -189,6 +213,12 @@ export default function App() {
         </footer>
       </div>
       <AddClusterDialog open={addOpen} onOpenChange={setAddOpen} onConnected={onConnected} />
+      {cluster && (
+        <>
+          <YamlEditor context={cluster.context} target={editorTarget} readOnly={readOnly} onClose={() => setEditorTarget(undefined)} />
+          <DeleteDialog context={cluster.context} obj={deleteTarget} onClose={() => setDeleteTarget(undefined)} />
+        </>
+      )}
     </TooltipProvider>
   );
 }

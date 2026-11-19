@@ -1,5 +1,6 @@
 mod catalog;
 mod kube;
+mod mutate;
 mod shell_env;
 mod watch;
 
@@ -27,6 +28,9 @@ pub fn run() {
             catalog::save_catalog,
             watch::watch_resource,
             watch::stop_watch,
+            mutate::get_yaml,
+            mutate::apply_yaml,
+            mutate::delete_resource,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

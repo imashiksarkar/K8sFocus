@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
 import { DetailsPanel } from "@/components/details/DetailsPanel";
 import { PodDetails } from "./PodDetails";
+import { ObjectActions } from "@/components/details/ObjectActions";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import { ResourceTable } from "@/components/resource-table/ResourceTable";
 import { commonColumns, kobjectId, searchKObject } from "@/components/resource-table/columns";
-import { R, type KObject } from "@/lib/resources";
+import { R, refOf, type KObject } from "@/lib/resources";
 import { useWatch } from "@/lib/useWatch";
 import { cn } from "@/lib/utils";
 
@@ -85,7 +86,12 @@ export function PodsView({ context, namespaces }: { context: string; namespaces:
         onRowClick={(p) => setSelected(p.metadata.uid === selected ? undefined : p.metadata.uid)}
         selectedRowId={selected}
       />
-      <DetailsPanel context={context} object={pod && { kind: "Pod", ...pod }} onClose={close}>
+      <DetailsPanel
+        context={context}
+        object={pod && { kind: "Pod", ...pod }}
+        onClose={close}
+        actions={pod && <ObjectActions obj={refOf(R.pods, pod)} />}
+      >
         {pod && <PodDetails pod={pod} />}
       </DetailsPanel>
     </div>

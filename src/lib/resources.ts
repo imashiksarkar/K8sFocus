@@ -24,3 +24,8 @@ export type KObject = {
   };
   spec?: any; status?: any;
 };
+
+export const apiVersionOf = (r: ResourceRef) => (r.group ? `${r.group}/${r.version}` : r.version);
+export const refOf = (r: ResourceRef, o: KObject) => ({
+  apiVersion: apiVersionOf(r), kind: r.kind, namespace: o.metadata.namespace, name: o.metadata.name,
+});

@@ -1,8 +1,7 @@
 //! Kubernetes access layer.
 //!
-//! SAFETY POLICY: this module is READ-ONLY. It only reads (list/get/watch).
-//! Any mutating operation (delete/patch/create/scale/...) must be added deliberately
-//! in a later roadmap task, behind an explicit user confirmation in the UI.
+//! Connection management (read-only). All mutating commands live in `mutate.rs`
+//! and are gated by `catalog::ensure_writable`.
 
 use std::collections::HashMap;
 

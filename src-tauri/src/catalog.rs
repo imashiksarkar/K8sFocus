@@ -12,6 +12,28 @@ pub struct SavedCluster {
     pub name: String,
     #[serde(default)]
     pub color: Option<String>,
+    /// When true (the default), every write command refuses to run for this cluster.
+    #[serde(default = "default_true")]
+    pub read_only: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+/// Write guard used by all mutating commands. Reads the persisted catalog (source of truth),
+/// so a UI bug cannot bypass it. Unknown clusters are treated as read-only.
+pub fn ensure_writable(app: &AppHandle, context: &str) -> Result<(), String> {
+    let writable = load_catalog(app.clone())?
+        .iter()
+        .any(|c| c.context == context && !c.read_only);
+    if writable {
+        Ok(())
+    } else {
+        Err(format!(
+            "Cluster \"{context}\" is read-only. Turn off read-only mode for this cluster to make changes."
+        ))
+    }
 }
 
 fn file(app: &AppHandle) -> Result<PathBuf, String> {

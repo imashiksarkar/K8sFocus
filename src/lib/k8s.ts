@@ -18,7 +18,21 @@ export function age(iso?: string) {
   return `${Math.floor(s / 86400)}d`;
 }
 
-export type SavedCluster = { context: string; name: string; color?: string };
+/** readOnly defaults to true (also enforced in Rust). */
+export type SavedCluster = { context: string; name: string; color?: string; readOnly?: boolean };
+export const isReadOnly = (c?: SavedCluster) => c?.readOnly !== false;
+
+export type ObjRef = { apiVersion: string; kind: string; namespace?: string; name: string };
+
+/** Mutations — Rust refuses these unless the cluster is switched to read-write. */
+export const k8sWrite = {
+  getYaml: (context: string, obj: ObjRef) => invoke<string>("get_yaml", { context, obj }),
+  apply: (context: string, yaml: string, opts: { dryRun: boolean; force?: boolean; defaultNamespace?: string }) =>
+    invoke<string>("apply_yaml", {
+      context, yaml, dryRun: opts.dryRun, force: opts.force ?? false, defaultNamespace: opts.defaultNamespace,
+    }),
+  delete: (context: string, obj: ObjRef, dryRun = false) => invoke<void>("delete_resource", { context, obj, dryRun }),
+};
 export const catalog = {
   load: () => invoke<SavedCluster[]>("load_catalog"),
   save: (clusters: SavedCluster[]) => invoke<void>("save_catalog", { clusters }),
