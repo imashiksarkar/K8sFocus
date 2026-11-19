@@ -33,6 +33,24 @@ export const isReadOnly = (c?: SavedCluster) => c?.readOnly !== false;
 
 export type ObjRef = { apiVersion: string; kind: string; namespace?: string; name: string };
 
+export type DrainPlan = { namespace: string; name: string; action: "evict" | "skip"; reason: string };
+export type DrainResult = { namespace: string; name: string; ok: boolean; message: string };
+
+/** Parse Kubernetes quantities ("3880Mi", "4", "250m") into base units (bytes / cores). */
+export function parseQuantity(q?: string): number {
+  if (!q) return 0;
+  const m = /^([0-9.]+)([a-zA-Z]*)$/.exec(q);
+  if (!m) return 0;
+  const n = parseFloat(m[1]);
+  const mult: Record<string, number> = {
+    "": 1, m: 1e-3, k: 1e3, M: 1e6, G: 1e9, T: 1e12,
+    Ki: 1024, Mi: 1024 ** 2, Gi: 1024 ** 3, Ti: 1024 ** 4,
+  };
+  return n * (mult[m[2]] ?? 1);
+}
+export const fmtBytes = (b: number) =>
+  b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(1)}GiB` : b >= 1024 ** 2 ? `${(b / 1024 ** 2).toFixed(0)}MiB` : `${b}B`;
+
 /** Mutations — Rust refuses these unless the cluster is switched to read-write. */
 export const k8sWrite = {
   getYaml: (context: string, obj: ObjRef) => invoke<string>("get_yaml", { context, obj }),
@@ -45,6 +63,11 @@ export const k8sWrite = {
   restart: (context: string, obj: ObjRef) => invoke<void>("restart_workload", { context, obj }),
   rollback: (context: string, namespace: string, name: string, replicaSet: string) =>
     invoke<void>("rollback_deployment", { context, namespace, name, replicaSet }),
+  cordon: (context: string, node: string, cordon: boolean) => invoke<void>("cordon_node", { context, node, cordon }),
+  drainPlan: (context: string, node: string, deleteEmptydir: boolean, force: boolean) =>
+    invoke<DrainPlan[]>("drain_plan", { context, node, deleteEmptydir, force }),
+  drain: (context: string, node: string, deleteEmptydir: boolean, force: boolean) =>
+    invoke<DrainResult[]>("drain_node", { context, node, deleteEmptydir, force }),
   triggerCronJob: (context: string, namespace: string, name: string) =>
     invoke<string>("trigger_cronjob", { context, namespace, name }),
   setCronJobSuspend: (context: string, namespace: string, name: string, suspend: boolean) =>

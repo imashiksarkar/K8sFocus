@@ -5,11 +5,13 @@ import {
 } from "./workloads/views";
 import { CronJobsView, JobsView } from "./workloads/batch";
 import { WorkloadsOverview } from "./workloads/overview";
+import { NodesView } from "./nodes/NodesView";
 
 export type ViewProps = { context: string; namespaces: string[]; navigate?: (key: string) => void };
 
 /** Sidebar key ("Group/Item") → view. Missing keys show "not implemented yet". */
 export const VIEWS: Record<string, ComponentType<ViewProps>> = {
+  "Nodes/Nodes": NodesView,
   "Workloads/Overview": WorkloadsOverview,
   "Workloads/Pods": PodsView,
   "Workloads/Deployments": DeploymentsView,

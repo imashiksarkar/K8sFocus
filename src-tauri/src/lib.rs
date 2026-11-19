@@ -1,6 +1,7 @@
 mod catalog;
 mod kube;
 mod mutate;
+mod nodes;
 mod shell_env;
 mod watch;
 
@@ -36,6 +37,9 @@ pub fn run() {
             mutate::rollback_deployment,
             mutate::trigger_cronjob,
             mutate::set_cronjob_suspend,
+            nodes::cordon_node,
+            nodes::drain_plan,
+            nodes::drain_node,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
