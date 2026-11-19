@@ -57,7 +57,7 @@ Each task has acceptance criteria. Tick the box only after you have tested the t
 ### Phase 3: Built-in resource views
 - [~] **T9 Pods.** Table with status, restarts, node, QoS, CPU/mem; container details in the drawer.
 - [~] **T10 Deployments, StatefulSets, DaemonSets and ReplicaSets.** Scale, restart and rollback actions.
-- [ ] **T11 Jobs and CronJobs.** Trigger, suspend and resume.
+- [~] **T11 Jobs and CronJobs.** Trigger, suspend and resume.
 - [ ] **T12 Nodes.** Cordon, uncordon and drain.
 - [ ] **T13 Config views.** ConfigMaps, Secrets (base64 reveal), quotas, limits, HPA, PDB and the rest of the Config section.
 - [ ] **T14 Network and Storage views.**

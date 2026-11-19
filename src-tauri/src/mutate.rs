@@ -282,3 +282,86 @@ pub async fn rollback_deployment(
         .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+/// Create a Job from a CronJob's template now (same as `kubectl create job --from=cronjob/<name>`).
+/// Returns the new Job's name.
+#[tauri::command]
+pub async fn trigger_cronjob(
+    app: AppHandle,
+    kube: tauri::State<'_, KubeState>,
+    context: String,
+    namespace: String,
+    name: String,
+) -> Result<String, String> {
+    use k8s_openapi::api::batch::v1::{CronJob, Job, JobSpec};
+    use k8s_openapi::apimachinery::pkg::apis::meta::v1::{ObjectMeta, OwnerReference};
+    use kube::api::PostParams;
+
+    ensure_writable(&app, &context)?;
+    let client = client_for(&kube, &context).await?;
+    let cj = Api::<CronJob>::namespaced(client.clone(), &namespace)
+        .get(&name)
+        .await
+        .map_err(|e| e.to_string())?;
+    let tpl = cj
+        .spec
+        .as_ref()
+        .map(|s| s.job_template.clone())
+        .ok_or("CronJob has no spec")?;
+
+    let suffix = format!("-manual-{}", k8s_openapi::chrono::Utc::now().timestamp());
+    let mut base = name.clone();
+    base.truncate(63 - suffix.len());
+    let job_name = format!("{}{}", base.trim_end_matches('-'), suffix);
+
+    let mut annotations = tpl
+        .metadata
+        .as_ref()
+        .and_then(|m| m.annotations.clone())
+        .unwrap_or_default();
+    annotations.insert("cronjob.kubernetes.io/instantiate".into(), "manual".into());
+    let job = Job {
+        metadata: ObjectMeta {
+            name: Some(job_name.clone()),
+            namespace: Some(namespace.clone()),
+            labels: tpl.metadata.as_ref().and_then(|m| m.labels.clone()),
+            annotations: Some(annotations),
+            owner_references: Some(vec![OwnerReference {
+                api_version: "batch/v1".into(),
+                kind: "CronJob".into(),
+                name: name.clone(),
+                uid: cj.metadata.uid.clone().unwrap_or_default(),
+                controller: Some(true),
+                block_owner_deletion: Some(true),
+            }]),
+            ..Default::default()
+        },
+        spec: Some(tpl.spec.unwrap_or_else(JobSpec::default)),
+        status: None,
+    };
+    Api::<Job>::namespaced(client, &namespace)
+        .create(&PostParams::default(), &job)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(job_name)
+}
+
+/// Suspend or resume a CronJob (merge-patch spec.suspend).
+#[tauri::command]
+pub async fn set_cronjob_suspend(
+    app: AppHandle,
+    kube: tauri::State<'_, KubeState>,
+    context: String,
+    namespace: String,
+    name: String,
+    suspend: bool,
+) -> Result<(), String> {
+    ensure_writable(&app, &context)?;
+    let client = client_for(&kube, &context).await?;
+    let api: Api<k8s_openapi::api::batch::v1::CronJob> = Api::namespaced(client, &namespace);
+    let patch = serde_json::json!({ "spec": { "suspend": suspend } });
+    api.patch(&name, &PatchParams::default(), &Patch::Merge(&patch))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}

@@ -9,6 +9,15 @@ export const k8s = {
   connect: (context: string) => invoke<ClusterInfo>("connect", { context }),
 };
 
+/** Human duration between two ISO times (or now). */
+export function duration(from?: string, to?: string) {
+  if (!from) return "";
+  const s = Math.max(0, ((to ? new Date(to) : new Date()).getTime() - new Date(from).getTime()) / 1000);
+  if (s < 60) return `${Math.floor(s)}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m${Math.floor(s % 60)}s`;
+  return `${Math.floor(s / 3600)}h${Math.floor((s % 3600) / 60)}m`;
+}
+
 export function age(iso?: string) {
   if (!iso) return "";
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -36,6 +45,10 @@ export const k8sWrite = {
   restart: (context: string, obj: ObjRef) => invoke<void>("restart_workload", { context, obj }),
   rollback: (context: string, namespace: string, name: string, replicaSet: string) =>
     invoke<void>("rollback_deployment", { context, namespace, name, replicaSet }),
+  triggerCronJob: (context: string, namespace: string, name: string) =>
+    invoke<string>("trigger_cronjob", { context, namespace, name }),
+  setCronJobSuspend: (context: string, namespace: string, name: string, suspend: boolean) =>
+    invoke<void>("set_cronjob_suspend", { context, namespace, name, suspend }),
 };
 export const catalog = {
   load: () => invoke<SavedCluster[]>("load_catalog"),

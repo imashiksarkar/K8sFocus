@@ -9,6 +9,9 @@ export const R = {
   statefulsets: { group: "apps", version: "v1", kind: "StatefulSet", plural: "statefulsets", namespaced: true },
   daemonsets: { group: "apps", version: "v1", kind: "DaemonSet", plural: "daemonsets", namespaced: true },
   replicasets: { group: "apps", version: "v1", kind: "ReplicaSet", plural: "replicasets", namespaced: true },
+  replicationcontrollers: { group: "", version: "v1", kind: "ReplicationController", plural: "replicationcontrollers", namespaced: true },
+  jobs: { group: "batch", version: "v1", kind: "Job", plural: "jobs", namespaced: true },
+  cronjobs: { group: "batch", version: "v1", kind: "CronJob", plural: "cronjobs", namespaced: true },
   events: { group: "", version: "v1", kind: "Event", plural: "events", namespaced: true },
   namespaces: { group: "", version: "v1", kind: "Namespace", plural: "namespaces", namespaced: false },
 } satisfies Record<string, ResourceRef>;

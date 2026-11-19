@@ -34,6 +34,8 @@ pub fn run() {
             mutate::scale_resource,
             mutate::restart_workload,
             mutate::rollback_deployment,
+            mutate::trigger_cronjob,
+            mutate::set_cronjob_suspend,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

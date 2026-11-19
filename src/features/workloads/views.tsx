@@ -112,3 +112,23 @@ export function ReplicaSetsView(p: ViewProps) {
       actions={(o) => <ScaleButton resource={R.replicasets} obj={o} />} />
   );
 }
+
+export function ReplicationControllersView(p: ViewProps) {
+  const columns = useMemo(() => {
+    const k = commonColumns<KObject>();
+    return [
+      k.name, k.namespace,
+      num("desired", "Desired", (o) => o.spec?.replicas),
+      num("current", "Current", (o) => o.status?.replicas),
+      num("ready", "Ready", (o) => o.status?.readyReplicas),
+      k.age,
+    ];
+  }, []);
+  // RC selectors are a plain map; normalize to matchLabels for the shared detail sections
+  const norm = (o: KObject): KObject => ({ ...o, spec: { ...o.spec, selector: { matchLabels: o.spec?.selector } } });
+  return (
+    <ResourceView {...p} resource={R.replicationcontrollers} columns={columns}
+      details={(o) => <><WorkloadSummary obj={norm(o)} /><WorkloadPods obj={norm(o)} /></>}
+      actions={(o) => <ScaleButton resource={R.replicationcontrollers} obj={o} />} />
+  );
+}

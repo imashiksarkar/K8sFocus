@@ -181,7 +181,7 @@ export default function App() {
               }}>
                 {(() => {
                   const View = VIEWS[active];
-                  return <View key={`${cluster.context}/${active}`} context={cluster.context} namespaces={namespaces} />;
+                  return <View key={`${cluster.context}/${active}`} context={cluster.context} namespaces={namespaces} navigate={setActive} />;
                 })()}
               </ClusterContext.Provider>
             ) : cluster ? (
