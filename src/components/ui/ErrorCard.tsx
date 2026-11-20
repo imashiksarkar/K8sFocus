@@ -40,7 +40,7 @@ export function ErrorCard({ error, title, className, compact, onDismiss }: {
             {e.code && <span className="text-[11px] text-muted-foreground">HTTP {e.code}</span>}
             {compact && <span className="min-w-0 truncate text-foreground/80" title={e.message}>{e.message}</span>}
           </div>
-          {!compact && <p className="mt-1 break-words text-xs text-foreground/90">{e.message}</p>}
+          {!compact && <p className="mt-1 wrap-break-word text-xs text-foreground/90">{e.message}</p>}
           {!compact && e.hint && <p className="mt-1.5 text-xs text-muted-foreground">{e.hint}</p>}
           {!compact && showDetails && (
             <div className="mt-2">
