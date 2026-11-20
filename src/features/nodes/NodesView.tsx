@@ -19,6 +19,7 @@ import { podStatus } from "../PodsView";
 import { fmtCpu, fmtMem, useMetrics, type MetricsSnapshot } from "@/lib/metrics";
 import { Sparkline, UsageBar } from "@/components/metrics/Sparkline";
 import { MetricsHint } from "@/components/metrics/MetricsHint";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 type ViewProps = { context: string; namespaces: string[] };
 const c = createColumnHelper<KObject>();
@@ -214,7 +215,7 @@ function DrainButton({ node }: { node: KObject }) {
             </p>
           )}
           {!results && <Input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={name} />}
-          {error && <p className="rounded-md bg-destructive/15 p-2 text-xs text-destructive select-text">{error}</p>}
+          <ErrorCard error={error} />
 
           <DialogFooter>
             {results ? (

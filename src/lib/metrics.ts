@@ -90,3 +90,25 @@ export function useMetrics(context: string | undefined, kind: "pods" | "nodes"):
 export const fmtCpu = (cores: number) => (cores < 1 ? `${Math.round(cores * 1000)}m` : `${cores.toFixed(2)}`);
 export const fmtMem = (b: number) =>
   b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(2)}Gi` : b >= 1024 ** 2 ? `${Math.round(b / 1024 ** 2)}Mi` : `${Math.round(b / 1024)}Ki`;
+
+/** Human CPU: 250m · 4.94 cores · 66.3 cores · 1.2k cores */
+export function fmtCpuHuman(cores: number) {
+  if (!Number.isFinite(cores) || cores <= 0) return "0";
+  if (cores < 1) return `${Math.round(cores * 1000)}m`;
+  if (cores < 10) return `${cores.toFixed(2)} cores`;
+  if (cores < 1000) return `${cores.toFixed(1)} cores`;
+  return `${(cores / 1000).toFixed(1)}k cores`;
+}
+
+/** Human memory (binary units): 512 KiB · 384 MiB · 42.7 GiB · 1.2 TiB */
+export function fmtMemHuman(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0";
+  const units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
+  let i = 0, v = bytes;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v >= 100 || i === 0 ? Math.round(v) : v.toFixed(1)} ${units[i]}`;
+}
+
+/** Big counts: 856 · 1.2k · 34k */
+export const fmtCount = (n: number) =>
+  new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n);

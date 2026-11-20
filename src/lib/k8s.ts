@@ -36,14 +36,16 @@ export type ObjRef = { apiVersion: string; kind: string; namespace?: string; nam
 export type DrainPlan = { namespace: string; name: string; action: "evict" | "skip"; reason: string };
 export type DrainResult = { namespace: string; name: string; ok: boolean; message: string };
 
-/** Parse Kubernetes quantities ("3880Mi", "4", "250m") into base units (bytes / cores). */
+/** Parse Kubernetes quantities ("3880Mi", "4", "250m", "4942184515n") into base units (bytes / cores). */
 export function parseQuantity(q?: string): number {
   if (!q) return 0;
   const m = /^([0-9.]+)([a-zA-Z]*)$/.exec(q);
   if (!m) return 0;
   const n = parseFloat(m[1]);
+  // Kubernetes suffixes: n=nanocores, u=micro, m=milli, k=kilo(1000), M=mega, G=giga, T=tera
+  // and binary: Ki/Mi/Gi/Ti. Note: "m" is milli (1e-3), NOT the variable name.
   const mult: Record<string, number> = {
-    "": 1, m: 1e-3, k: 1e3, M: 1e6, G: 1e9, T: 1e12,
+    "": 1, n: 1e-9, u: 1e-6, m: 1e-3, k: 1e3, M: 1e6, G: 1e9, T: 1e12,
     Ki: 1024, Mi: 1024 ** 2, Gi: 1024 ** 3, Ti: 1024 ** 4,
   };
   return n * (mult[m[2]] ?? 1);

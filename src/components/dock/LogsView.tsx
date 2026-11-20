@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { LogsTab } from "./types";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 type LogEvent = { type: "lines"; lines: string[] } | { type: "end"; error?: string };
 const MAX_LINES = 50_000;
@@ -121,7 +122,7 @@ export function LogsView({ tab }: { tab: LogsTab }) {
           onClick={() => { setStick(true); virt.scrollToIndex(shown.length - 1, { align: "end" }); }}><ArrowDownToLine /></Button>
         <Button variant="ghost" size="icon" className="size-7" title="Download" onClick={download} disabled={!lines.length}><Download /></Button>
       </div>
-      {error && <p className="border-b bg-destructive/15 px-3 py-1 text-xs text-destructive select-text">{error}</p>}
+      <ErrorCard error={error} compact className="m-2" />
       <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-auto bg-[#111113] font-mono text-xs leading-[18px] select-text">
         <div style={{ height: virt.getTotalSize(), position: "relative" }}>
           {virt.getVirtualItems().map((vi) => (

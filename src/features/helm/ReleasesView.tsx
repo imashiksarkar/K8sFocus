@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { usePrefs } from "@/lib/prefs";
 import { chartBaseName, helm, helmCharts, helmDate, type HelmRelease, type HelmRevision } from "./api";
 import { InstallDialog, type InstallTarget } from "./InstallDialog";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 const c = createColumnHelper<HelmRelease>();
 const statusColor = (s: string) =>
@@ -132,7 +133,7 @@ function ReleasePanel({ rel, onClose, onChanged }: { rel: HelmRelease; onClose: 
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
-        {error && <p className="m-3 rounded-md bg-destructive/15 p-2 text-xs text-destructive select-text">{error}</p>}
+        <ErrorCard error={error} className="m-3" />
         {tab === "history" ? (
           !history ? <Loading /> : (
             <ul className="divide-y text-sm">

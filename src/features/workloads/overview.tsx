@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { R, type KObject, type ResourceRef } from "@/lib/resources";
 import { useWatch } from "@/lib/useWatch";
 import { age } from "@/lib/k8s";
 import { cn } from "@/lib/utils";
+import { fmtCount } from "@/lib/metrics";
 import { podStatus } from "../PodsView";
 import { jobStatus } from "./batch";
 
@@ -85,23 +86,36 @@ export function WarningEvents({ context, namespaces }: ViewProps) {
       <h3 className="border-b px-4 py-2 text-sm font-medium">Warning events {ready && <span className="text-muted-foreground">({warnings.length})</span>}</h3>
       {ready && !warnings.length && <p className="p-4 text-sm text-muted-foreground">No warnings. 🎉</p>}
       <ul className="divide-y text-sm">
-        {warnings.map((e: any) => (
-          <li key={e.metadata.uid} className="flex gap-3 px-4 py-2">
-            <span className="w-14 shrink-0 text-xs text-muted-foreground">{age(t(e))}</span>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs">
-                <span className="font-semibold text-primary">{e.reason}</span>{" "}
-                <span className="text-muted-foreground">{e.involvedObject?.kind}/{e.involvedObject?.name} · {e.metadata.namespace}</span>
-                {e.count > 1 && <span className="text-muted-foreground"> · ×{e.count}</span>}
-              </div>
-              <p className="wrap-break-word select-text">{e.message}</p>
-            </div>
-          </li>
-        ))}
+        {warnings.map((e: any) => <WarningRow key={e.metadata.uid} e={e} />)}
       </ul>
     </section>
   );
 }
+function WarningRow({ e }: { e: any }) {
+  const [open, setOpen] = useState(false);
+  const obj = `${e.involvedObject?.kind}/${e.involvedObject?.name}`;
+  const long = (e.message ?? "").length > 220;
+  return (
+    <li className="flex gap-3 px-4 py-2">
+      <span className="w-10 shrink-0 text-xs text-muted-foreground tabular-nums">{age(t(e))}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-baseline gap-1.5 text-xs">
+          <span className="shrink-0 font-semibold text-primary">{e.reason}</span>
+          <span className="min-w-0 truncate text-muted-foreground" title={obj}>{obj}</span>
+          <span className="shrink-0 text-muted-foreground">· {e.metadata.namespace}</span>
+          {e.count > 1 && <span className="shrink-0 text-muted-foreground" title={`${e.count} times`}>· ×{fmtCount(e.count)}</span>}
+        </div>
+        <p className={cn("mt-0.5 text-[13px] wrap-break-word select-text", !open && "line-clamp-3")}>{e.message}</p>
+        {long && (
+          <button className="mt-0.5 text-[11px] text-primary hover:underline" onClick={() => setOpen(!open)}>
+            {open ? "Show less" : "Show more"}
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
+
 const t = (e: any): string => e.lastTimestamp ?? e.eventTime ?? e.metadata?.creationTimestamp ?? "";
 
 export function WorkloadsOverview(p: ViewProps) {

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCluster } from "@/lib/cluster-context";
 import { helm, helmCharts } from "./api";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 export type InstallTarget = {
   mode: "install" | "upgrade";
@@ -100,7 +101,7 @@ export function InstallDialog({ target, onClose, onDone }: { target?: InstallTar
           )}
         </div>
 
-        {error && <p className="max-h-32 overflow-auto rounded-md bg-destructive/15 p-2 text-xs whitespace-pre-wrap text-destructive select-text">{error}</p>}
+        <ErrorCard error={error} />
 
         <div className="flex items-center gap-3">
           {target?.mode === "install" && preview === undefined && (

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { k8sWrite, type ObjRef } from "@/lib/k8s";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 export type EditorTarget =
   | { mode: "edit"; obj: ObjRef }
@@ -106,11 +107,7 @@ export function YamlEditor({ context, target, readOnly, onClose }: {
           )}
         </div>
 
-        {error && (
-          <p className="max-h-32 overflow-auto rounded-md bg-destructive/15 p-2 text-xs whitespace-pre-wrap text-destructive select-text">
-            {error}
-          </p>
-        )}
+        <ErrorCard error={error} className="max-h-48 overflow-auto" />
 
         <div className="flex items-center gap-2">
           {readOnly && (

@@ -1,4 +1,5 @@
 mod catalog;
+mod envsrc;
 mod exec;
 mod helm;
 mod kube;
@@ -39,6 +40,7 @@ pub fn run() {
         .manage(portforward::ForwardState::default())
         .setup(|app| {
             prefs::init(app.handle());
+            portforward::restore(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -53,6 +55,7 @@ pub fn run() {
             watch::watch_resource,
             watch::stop_watch,
             watch::list_resource,
+            envsrc::read_env_source,
             logs::stream_logs,
             logs::save_text_file,
             exec::exec_start,
@@ -65,7 +68,9 @@ pub fn run() {
             terminal::terminal_close,
             portforward::port_forward_start,
             portforward::port_forward_list,
-            portforward::port_forward_stop,
+            portforward::port_forward_pause,
+            portforward::port_forward_resume,
+            portforward::port_forward_remove,
             helm::helm_list,
             helm::helm_get,
             helm::helm_history,

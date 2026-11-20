@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { savePrefs, usePrefs, type Prefs } from "@/lib/prefs";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 function Row({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
@@ -139,7 +140,7 @@ export function PreferencesDialog({ open, onOpenChange, onKubeconfigChanged }: {
           </Row>
         </div>
 
-        {error && <p className="rounded-md bg-destructive/15 p-2 text-xs text-destructive">{error}</p>}
+        <ErrorCard error={error} title="Couldn't save preferences" />
         <DialogFooter>
           <Button variant="ghost" onClick={() => setP(saved)}>Reset changes</Button>
           <Button onClick={save} disabled={busy}>{busy && <Loader2 className="animate-spin" />} Save</Button>

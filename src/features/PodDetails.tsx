@@ -1,10 +1,10 @@
-import { Badge } from "@/components/ui/badge";
 import { Conditions, Fields, KVChips, Section } from "@/components/details/parts";
 import type { KObject } from "@/lib/resources";
 import { cn } from "@/lib/utils";
 import { podStatus } from "./PodsView";
 import { useCluster } from "@/lib/cluster-context";
 import { ForwardButton } from "./portforward/ForwardButton";
+import { EnvVars } from "./pods/EnvVars";
 import { fmtCpu, fmtMem, useMetrics, type Usage } from "@/lib/metrics";
 import { parseQuantity } from "@/lib/k8s";
 
@@ -33,15 +33,16 @@ export function PodDetails({ pod }: { pod: KObject }) {
           ["Tolerations", spec.tolerations?.length
             ? spec.tolerations.map((t: any) => [t.key ?? "*", t.operator, t.value, t.effect].filter(Boolean).join(" ")).join("; ")
             : undefined],
+          ["Ports", <PodPorts pod={pod} />],
           ["Conditions", <Conditions items={st.conditions} />],
         ]} />
       </Section>
 
       {(spec.initContainers ?? []).map((c: any) => (
-        <Container key={`init-${c.name}`} c={c} status={statusOf(c.name)} init onLogs={() => openLogs(pod, c.name)} />
+        <Container key={`init-${c.name}`} c={c} status={statusOf(c.name)} init onLogs={() => openLogs(pod, c.name)} pod={pod} context={context} />
       ))}
       {(spec.containers ?? []).map((c: any) => (
-        <Container key={c.name} c={c} status={statusOf(c.name)} onLogs={() => openLogs(pod, c.name)} pod={pod} usage={usage?.containers?.[c.name]} />
+        <Container key={c.name} c={c} status={statusOf(c.name)} onLogs={() => openLogs(pod, c.name)} pod={pod} context={context} usage={usage?.containers?.[c.name]} />
       ))}
 
       {spec.volumes?.length > 0 && (
@@ -73,8 +74,8 @@ function stateText(s: any): { text: string; ok: boolean } {
   return { text: `terminated: ${t.reason ?? ""} (exit ${t.exitCode})`, ok: t.exitCode === 0 };
 }
 
-function Container({ c, status, init, onLogs, pod, usage }: {
-  c: any; status?: any; init?: boolean; onLogs: () => void; pod?: KObject; usage?: Usage;
+function Container({ c, status, init, onLogs, pod, context, usage }: {
+  c: any; status?: any; init?: boolean; onLogs: () => void; pod: KObject; context: string; usage?: Usage;
 }) {
   const state = stateText(status);
   const last = status?.lastState?.terminated;
@@ -114,40 +115,10 @@ function Container({ c, status, init, onLogs, pod, usage }: {
             </li>
           ))}</ul>
         ) : undefined],
-        ["Environment", c.env?.length || c.envFrom?.length ? <Env env={c.env} envFrom={c.envFrom} /> : undefined],
+        ["Environment", c.env?.length || c.envFrom?.length ? <EnvVars container={c} pod={pod} context={context} /> : undefined],
       ]} />
     </Section>
   );
-}
-
-function Env({ env = [], envFrom = [] }: { env?: any[]; envFrom?: any[] }) {
-  return (
-    <ul className="space-y-0.5 font-mono text-xs">
-      {env.map((e) => (
-        <li key={e.name} className="break-all">
-          <span>{e.name}</span>=
-          {e.value !== undefined ? <span className="text-muted-foreground">{e.value}</span> : <Ref v={e.valueFrom} />}
-        </li>
-      ))}
-      {envFrom.map((e, i) => (
-        <li key={`from-${i}`}>
-          <Badge variant="outline" className="font-normal">
-            all from {e.secretRef ? `secret/${e.secretRef.name}` : `configmap/${e.configMapRef?.name}`}
-            {e.prefix ? ` (prefix ${e.prefix})` : ""}
-          </Badge>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Ref({ v }: { v: any }) {
-  const text = v?.secretKeyRef ? `secret ${v.secretKeyRef.name}.${v.secretKeyRef.key}`
-    : v?.configMapKeyRef ? `configmap ${v.configMapKeyRef.name}.${v.configMapKeyRef.key}`
-    : v?.fieldRef ? `field ${v.fieldRef.fieldPath}`
-    : v?.resourceFieldRef ? `resource ${v.resourceFieldRef.resource}`
-    : "?";
-  return <span className="text-primary">&lt;{text}&gt;</span>;
 }
 
 const fmtRes = (r?: Record<string, string>) =>
@@ -170,5 +141,33 @@ function usageVs(text: string, used: number, req?: string, lim?: string) {
       {text}
       <span className="text-muted-foreground">{[req && ` · ${pct(req)} request`, lim && ` · ${pct(lim)} limit`].filter(Boolean).join("")}</span>
     </span>
+  );
+}
+
+/** All ports exposed by the pod's containers, each with Forward / Pause / Resume (like Lens). */
+function PodPorts({ pod }: { pod: KObject }) {
+  const ports = (pod.spec?.containers ?? []).flatMap((c: any) =>
+    (c.ports ?? []).map((p: any) => ({ ...p, container: c.name })));
+  if (!ports.length) return <span className="text-muted-foreground">none declared</span>;
+  const running = pod.status?.phase === "Running";
+  const multi = (pod.spec?.containers ?? []).length > 1;
+  return (
+    <ul className="space-y-1">
+      {ports.map((p: any) => {
+        const tcp = (p.protocol ?? "TCP") === "TCP";
+        return (
+          <li key={`${p.container}/${p.containerPort}/${p.protocol}`} className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+            <span className="font-mono text-xs">
+              {p.name && <span className="text-muted-foreground">{p.name}: </span>}{p.containerPort}/{p.protocol ?? "TCP"}
+              {multi && <span className="text-muted-foreground"> · {p.container}</span>}
+            </span>
+            {tcp && running && (
+              <ForwardButton kind="pod" namespace={pod.metadata.namespace!} name={pod.metadata.name} port={p.containerPort} />
+            )}
+            {!tcp && <span className="text-[11px] text-muted-foreground">(UDP can't be forwarded)</span>}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

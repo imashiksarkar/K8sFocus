@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 const ROW_HEIGHT = 34;
 
@@ -185,9 +186,7 @@ export function ResourceTable<T>({
         </DropdownMenu>
       </div>
 
-      {error && (
-        <p className="mx-4 mt-2 rounded-md bg-destructive/15 p-2 text-xs text-destructive select-text">{error}</p>
-      )}
+      <ErrorCard error={error} className="mx-4 mt-2" />
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
         <table className="w-full caption-bottom text-sm">

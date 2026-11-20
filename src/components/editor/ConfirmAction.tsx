@@ -5,6 +5,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 /** Generic confirm dialog for a cluster mutation; shows the server error inline. */
 export function ConfirmAction({ open, onOpenChange, title, description, children, confirmLabel, destructive, disabled, onConfirm }: {
@@ -34,7 +35,7 @@ export function ConfirmAction({ open, onOpenChange, title, description, children
           <AlertDialogDescription asChild><div>{description}</div></AlertDialogDescription>
         </AlertDialogHeader>
         {children}
-        {error && <p className="rounded-md bg-destructive/15 p-2 text-xs text-destructive select-text">{error}</p>}
+        <ErrorCard error={error} />
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
           <Button variant={destructive ? "destructive" : "default"} disabled={busy || disabled} onClick={run}>

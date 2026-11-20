@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { k8sWrite, type ObjRef } from "@/lib/k8s";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 /** Delete exactly one object; user must type its name. */
 export function DeleteDialog({ context, obj, onClose }: { context: string; obj?: ObjRef; onClose: () => void }) {
@@ -37,7 +38,7 @@ export function DeleteDialog({ context, obj, onClose }: { context: string; obj?:
         </AlertDialogHeader>
         <Input autoFocus value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={obj?.name}
           onKeyDown={(e) => e.key === "Enter" && run()} />
-        {error && <p className="rounded-md bg-destructive/15 p-2 text-xs text-destructive select-text">{error}</p>}
+        <ErrorCard error={error} title="Delete failed" />
         <AlertDialogFooter>
           <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
           <Button variant="destructive" disabled={busy || typed !== obj?.name} onClick={run}>

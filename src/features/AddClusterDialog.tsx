@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { k8s, type ClusterInfo, type ContextInfo } from "@/lib/k8s";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 type Props = { open: boolean; onOpenChange: (o: boolean) => void; onConnected: (c: ClusterInfo) => void };
 
@@ -58,7 +59,7 @@ export function AddClusterDialog({ open, onOpenChange, onConnected }: Props) {
           ))}
           {!contexts.length && !error && <li className="text-sm text-muted-foreground">No contexts found.</li>}
         </ul>
-        {error && <p className="whitespace-pre-wrap rounded-md bg-destructive/15 p-2 text-xs text-destructive">{error}</p>}
+        <ErrorCard error={error} title="Couldn't connect" />
       </DialogContent>
     </Dialog>
   );

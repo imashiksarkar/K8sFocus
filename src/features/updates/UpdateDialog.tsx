@@ -5,6 +5,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 type State =
   | { kind: "idle" }
@@ -86,7 +87,7 @@ export function UpdateDialog({ checkToken, manual }: { checkToken: number; manua
             </p>
           </div>
         )}
-        {s.kind === "error" && <p className="rounded-md bg-destructive/15 p-2 text-xs text-destructive select-text">{s.message}</p>}
+        {s.kind === "error" && <ErrorCard error={s.message} title="Update failed" />}
 
         <DialogFooter>
           {s.kind === "available" ? (

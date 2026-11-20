@@ -30,6 +30,7 @@ import type { DockTab } from "@/components/dock/types";
 import type { KObject } from "@/lib/resources";
 import { R } from "@/lib/resources";
 import { NamespacePicker } from "@/features/NamespacePicker";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 /** App shell. Layout mirrors Lens: hotbar | cluster sidebar | main view | status bar. */
 export default function App() {
@@ -332,12 +333,7 @@ export default function App() {
               )}
             </header>
             {cluster && connectError && (
-              <button
-                onClick={() => setConnectError(undefined)}
-                className="mx-4 mt-2 rounded-md bg-destructive/15 p-2 text-left text-xs whitespace-pre-wrap text-destructive"
-              >
-                {connectError} <span className="opacity-60">(click to dismiss)</span>
-              </button>
+              <ErrorCard error={connectError} title="Couldn't connect" className="mx-4 mt-2" onDismiss={() => setConnectError(undefined)} />
             )}
             {cluster && (VIEWS[active] || activeCrd) ? (
               <ClusterContext.Provider value={{
@@ -365,9 +361,7 @@ export default function App() {
                   K8s<span className="text-primary">Focus</span>
                 </p>
                 {connectError && (
-                  <p className="mx-auto mt-3 max-w-md whitespace-pre-wrap rounded-md bg-destructive/15 p-2 text-left text-xs text-destructive select-text">
-                    {connectError}
-                  </p>
+                  <ErrorCard error={connectError} title="Couldn't connect" className="mx-auto mt-3 max-w-lg text-left" onDismiss={() => setConnectError(undefined)} />
                 )}
                 <p className="mt-1 text-sm text-muted-foreground">
                   {saved.length ? "Pick a cluster from the left bar, or add one." : "Connect a cluster from your kubeconfig to get started."}

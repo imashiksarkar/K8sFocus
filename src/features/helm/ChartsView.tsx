@@ -8,6 +8,7 @@ import { ResourceTable } from "@/components/resource-table/ResourceTable";
 import { cn } from "@/lib/utils";
 import { helmCharts, type HelmChart, type HelmRepo } from "./api";
 import { InstallDialog, type InstallTarget } from "./InstallDialog";
+import { ErrorCard } from "@/components/ui/ErrorCard";
 
 const c = createColumnHelper<HelmChart>();
 
@@ -81,7 +82,7 @@ function ChartPanel({ chart, onClose, onInstall }: { chart: HelmChart; onClose: 
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-4">
-        {error && <p className="rounded-md bg-destructive/15 p-2 text-xs text-destructive">{error}</p>}
+        <ErrorCard error={error} />
         {text === undefined && !error ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : (
           <pre className="font-mono text-xs whitespace-pre-wrap select-text">{text}</pre>
         )}
@@ -134,7 +135,7 @@ function ReposDialog({ open, onOpenChange, onChanged }: { open: boolean; onOpenC
           </Button>
           {busy && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="size-3.5 animate-spin" />{busy}</span>}
         </div>
-        {error && <p className="rounded-md bg-destructive/15 p-2 text-xs text-destructive select-text">{error}</p>}
+        <ErrorCard error={error} />
       </DialogContent>
     </Dialog>
   );
