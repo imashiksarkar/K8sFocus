@@ -25,5 +25,4 @@ dist-ssr
 docs/
 
 # Claude settings
-.claude.settings.json
-.claude.settings.json.off
+.claude/settings.*
