@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   flexRender, getCoreRowModel, getFilteredRowModel, getSortedRowModel, useReactTable,
-  type ColumnDef, type RowSelectionState, type SortingState, type VisibilityState,
+  type ColumnDef, type ColumnSizingState, type RowSelectionState, type SortingState, type VisibilityState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown, ArrowUp, Columns3, Loader2, Search } from "lucide-react";
@@ -51,17 +51,20 @@ export function ResourceTable<T>({
 }: ResourceTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>(() => loadJSON(`table.${id}.sort`, defaultSort));
   const [visibility, setVisibility] = useState<VisibilityState>(() => loadJSON(`table.${id}.cols`, {}));
+  const [sizing, setSizing] = useState<ColumnSizingState>(() => loadJSON(`table.${id}.sizes`, {}));
   const [selection, setSelection] = useState<RowSelectionState>({});
   const [search, setSearch] = useState("");
 
   useEffect(() => saveJSON(`table.${id}.sort`, sorting), [id, sorting]);
   useEffect(() => saveJSON(`table.${id}.cols`, visibility), [id, visibility]);
+  useEffect(() => saveJSON(`table.${id}.sizes`, sizing), [id, sizing]);
 
   const allColumns = useMemo<ColumnDef<T, any>[]>(() => [
     {
       id: "_select",
       size: 36,
       enableSorting: false,
+      enableResizing: false,
       enableHiding: false,
       header: ({ table }) => (
         <Checkbox
@@ -86,7 +89,11 @@ export function ResourceTable<T>({
     data: items,
     columns: allColumns,
     getRowId: (r) => getRowId(r),
-    state: { sorting, columnVisibility: visibility, rowSelection: selection, globalFilter: search },
+    state: { sorting, columnVisibility: visibility, columnSizing: sizing, rowSelection: selection, globalFilter: search },
+    defaultColumn: { size: 140, minSize: 50 },
+    columnResizeMode: "onChange",
+    enableColumnResizing: true,
+    onColumnSizingChange: setSizing,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setVisibility,
     onRowSelectionChange: setSelection,
@@ -137,7 +144,15 @@ export function ResourceTable<T>({
   const padTop = vItems[0]?.start ?? 0;
   const padBottom = vItems.length ? virtual.getTotalSize() - vItems[vItems.length - 1].end : 0;
   const selectedRows = table.getSelectedRowModel().rows.map((r) => r.original);
-  const colCount = table.getVisibleLeafColumns().length;
+  const colCount = table.getVisibleLeafColumns().length + 1; // + filler column
+
+  // Row click opens details. Ignore clicks that end a text-selection drag, and take
+  // focus away from the search box so the click never feeds the filter.
+  function rowClick(row: T) {
+    if (window.getSelection()?.toString()) return;
+    if (document.activeElement === searchRef.current) searchRef.current?.blur();
+    onRowClick?.(row);
+  }
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -189,7 +204,7 @@ export function ResourceTable<T>({
       <ErrorCard error={error} className="mx-4 mt-2" />
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
-        <table className="w-full caption-bottom text-sm">
+        <table className="caption-bottom text-sm" style={{ tableLayout: "fixed", width: `max(100%, ${table.getTotalSize()}px)` }}>
           <thead className="sticky top-0 z-10 bg-background shadow-[0_1px_0_var(--border)]">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
@@ -198,9 +213,9 @@ export function ResourceTable<T>({
                   return (
                     <th
                       key={h.id}
-                      style={h.column.id === "_select" ? { width: 36 } : undefined}
+                      style={{ width: h.getSize() }}
                       className={cn(
-                        "h-9 px-2 text-left align-middle font-medium whitespace-nowrap text-muted-foreground",
+                        "group/th relative h-9 truncate px-2 text-left align-middle font-medium whitespace-nowrap text-muted-foreground select-none",
                         h.column.getCanSort() && "cursor-pointer hover:text-foreground",
                       )}
                       onClick={h.column.getToggleSortingHandler()}
@@ -210,9 +225,23 @@ export function ResourceTable<T>({
                         {sorted === "asc" && <ArrowUp className="size-3 text-primary" />}
                         {sorted === "desc" && <ArrowDown className="size-3 text-primary" />}
                       </span>
+                      {h.column.getCanResize() && (
+                        <div
+                          onMouseDown={h.getResizeHandler()}
+                          onTouchStart={h.getResizeHandler()}
+                          onClick={(e) => e.stopPropagation()}
+                          onDoubleClick={(e) => { e.stopPropagation(); h.column.resetSize(); }}
+                          title="Drag to resize · double-click to reset"
+                          className={cn(
+                            "absolute top-1.5 right-0 bottom-1.5 w-1.5 cursor-col-resize border-r border-border group-hover/th:border-muted-foreground",
+                            h.column.getIsResizing() && "border-primary group-hover/th:border-primary",
+                          )}
+                        />
+                      )}
                     </th>
                   );
                 })}
+                <th />
               </tr>
             ))}
           </thead>
@@ -224,7 +253,7 @@ export function ResourceTable<T>({
                 <tr
                   key={row.id}
                   style={{ height: ROW_HEIGHT }}
-                  onClick={() => onRowClick?.(row.original)}
+                  onClick={() => rowClick(row.original)}
                   className={cn(
                     "border-b transition-colors hover:bg-muted/50",
                     onRowClick && "cursor-pointer",
@@ -233,10 +262,11 @@ export function ResourceTable<T>({
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="max-w-96 truncate px-2 align-middle whitespace-nowrap select-text">
+                    <td key={cell.id} className="truncate px-2 align-middle whitespace-nowrap select-text">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
+                  <td />
                 </tr>
               );
             })}

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useClusterMaybe } from "@/lib/cluster-context";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import { ResourceTable } from "@/components/resource-table/ResourceTable";
@@ -50,7 +52,15 @@ export function ResourceView({ context, namespaces, resource, columns, defaultSo
         defaultSort={defaultSort ?? (resource.namespaced
           ? [{ id: "namespace", desc: false }, { id: "name", desc: false }]
           : [{ id: "name", desc: false }])}
-        onRowClick={(o) => setSelected(o.metadata.uid === selected ? undefined : o.metadata.uid)}
+        onRowClick={(o) => setSelected(o.metadata.uid)}
+        selectionActions={(rows) => (
+          <Button variant="outline" size="sm" className="h-7 text-xs hover:text-destructive"
+            disabled={!cluster || cluster.readOnly}
+            title={cluster?.readOnly ? "Cluster is read-only" : `Delete ${rows.length} selected`}
+            onClick={() => cluster?.confirmDelete(rows.map((o) => refOf(resource, o)))}>
+            <Trash2 /> Delete {rows.length}
+          </Button>
+        )}
         selectedRowId={selected}
         toolbar={toolbar}
       />

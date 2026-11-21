@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Check, ChevronRight, Copy, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Check, ChevronRight, Copy, Eye, EyeOff, Loader2, Search } from "lucide-react";
 import { friendlyError } from "@/lib/errors";
 import type { KObject } from "@/lib/resources";
 import { cn } from "@/lib/utils";
@@ -41,7 +41,10 @@ type Row = {
 };
 
 export function EnvVars({ container, pod, context }: { container: any; pod: KObject; context: string }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
+  const [filter, setFilter] = useState("");
+  const [revealAll, setRevealAll] = useState(false);
+  const [copiedAll, setCopiedAll] = useState(false);
   const [loaded, setLoaded] = useState<Record<string, Loaded>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const ns = pod.metadata.namespace!;
@@ -104,29 +107,90 @@ export function EnvVars({ container, pod, context }: { container: any; pod: KObj
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [container, pod, loaded]);
 
+  // plain-text value for copy / filter (undefined when hidden or not loaded yet)
+  const plainOf = (r: Row): string | undefined => {
+    const src = r.source;
+    if (!src) return r.value;
+    if (!src.key) return undefined;
+    if (src.kind === "Secret" && !(revealAll || revealed[`${r.badge}|${r.name}`])) return undefined;
+    return loaded[srcKey(src.kind, src.name)]?.data?.[src.key];
+  };
+  const q = filter.trim().toLowerCase();
+  const visible = q
+    ? rows.filter((r) => r.name.toLowerCase().includes(q) || r.badge.toLowerCase().includes(q) || (plainOf(r) ?? "").toLowerCase().includes(q))
+    : rows;
+  const hasSecrets = rows.some((r) => r.source?.kind === "Secret");
+
+  function toggleRevealAll() {
+    const v = !revealAll;
+    setRevealAll(v);
+    if (v) for (const r of rows) if (r.source?.kind === "Secret") load("Secret", r.source.name);
+  }
+  function copyEnv() {
+    const lines = rows.filter((r) => !r.overridden).map((r) => {
+      const v = plainOf(r);
+      return v === undefined ? `# ${r.name}  (${r.badge}, not loaded)` : `${r.name}=${/[\s"'#$]/.test(v) ? JSON.stringify(v) : v}`;
+    });
+    navigator.clipboard?.writeText(lines.join("\n")).then(() => { setCopiedAll(true); setTimeout(() => setCopiedAll(false), 1000); });
+  }
+
   if (!total) return <span className="text-muted-foreground">—</span>;
 
   return (
     <div className="min-w-0">
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-1 text-primary hover:underline">
-        <ChevronRight className={cn("size-3.5 transition-transform", open && "rotate-90")} />
-        {open ? "Hide" : "Show"} {env.length} variable{env.length === 1 ? "" : "s"}
-        {envFrom.length > 0 && ` + ${envFrom.length} source${envFrom.length === 1 ? "" : "s"}`}
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button onClick={() => setOpen(!open)} className="flex items-center gap-1 text-primary hover:underline">
+          <ChevronRight className={cn("size-3.5 transition-transform", open && "rotate-90")} />
+          {env.length} variable{env.length === 1 ? "" : "s"}
+          {envFrom.length > 0 && ` + ${envFrom.length} source${envFrom.length === 1 ? "" : "s"}`}
+        </button>
+        {open && (
+          <span className="ml-auto flex items-center gap-1">
+            {hasSecrets && (
+              <button onClick={toggleRevealAll} title={revealAll ? "Hide secret values" : "Reveal all secret values"}
+                className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
+                {revealAll ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />} Secrets
+              </button>
+            )}
+            <button onClick={copyEnv} title="Copy all as .env"
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
+              {copiedAll ? <Check className="size-3.5" /> : <Copy className="size-3.5" />} .env
+            </button>
+          </span>
+        )}
+      </div>
       {open && (
-        <ul className="mt-2 divide-y rounded-md border text-xs">
-          {rows.map((r, i) => <EnvRow key={`${r.name}-${i}`} r={r} loaded={loaded} revealed={revealed}
-            onReveal={(k, v) => { setRevealed((x) => ({ ...x, [k]: v })); if (v && r.source) load(r.source.kind, r.source.name); }}
-            onLoad={(kind, name) => load(kind, name)} />)}
-        </ul>
+        <div className="mt-2 rounded-md border">
+          {rows.length > 6 && (
+            <div className="relative border-b">
+              <Search className="absolute top-1.5 left-2 size-3.5 text-muted-foreground" />
+              <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter variables…"
+                className="h-7 w-full bg-transparent pr-2 pl-7 text-xs outline-none" />
+            </div>
+          )}
+          <ul className="divide-y text-xs">
+            {visible.map((r, i) => <EnvRow key={`${r.badge}|${r.name}-${i}`} r={r} loaded={loaded} revealAll={revealAll} revealed={revealed}
+              onReveal={(k, v) => { setRevealed((x) => ({ ...x, [k]: v })); if (v && r.source) load(r.source.kind, r.source.name); }}
+              onLoad={(kind, name) => load(kind, name)} />)}
+            {!visible.length && <li className="px-2 py-2 text-muted-foreground">No variables match.</li>}
+          </ul>
+        </div>
       )}
     </div>
   );
 }
 
-function EnvRow({ r, loaded, revealed, onReveal, onLoad }: {
+function SourceChip({ badge }: { badge: string }) {
+  if (badge === "value") return null;
+  const tone = badge.includes("secret") ? "border-destructive/40 text-destructive"
+    : badge.includes("configmap") ? "border-primary/40 text-primary" : "text-muted-foreground";
+  return <span className={cn("inline-block max-w-full truncate rounded border px-1 font-sans text-[10px] leading-4", tone)} title={badge}>{badge}</span>;
+}
+
+function EnvRow({ r, loaded, revealAll, revealed, onReveal, onLoad }: {
   r: Row;
   loaded: Record<string, Loaded>;
+  revealAll: boolean;
   revealed: Record<string, boolean>;
   onReveal: (rowKey: string, show: boolean) => void;
   onLoad: (kind: SourceKind, name: string) => void;
@@ -136,8 +200,7 @@ function EnvRow({ r, loaded, revealed, onReveal, onLoad }: {
   const isSecret = src?.kind === "Secret";
   const rowKey = `${r.badge}|${r.name}`;
   const state = src ? loaded[`${src.kind}/${src.name}`] : undefined;
-  const shown = !isSecret || revealed[rowKey];
-
+  const shown = !isSecret || revealAll || revealed[rowKey];
   let value: React.ReactNode;
   let plain: string | undefined;
   if (!src) { plain = r.value; value = r.value || <span className="text-muted-foreground">""</span>; }
@@ -155,12 +218,11 @@ function EnvRow({ r, loaded, revealed, onReveal, onLoad }: {
   else { plain = state.data![src.key]; value = plain || <span className="text-muted-foreground">""</span>; }
 
   return (
-    <li className={cn("group grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto] items-start gap-2 px-2 py-1.5", r.overridden && "opacity-50")}>
-      <div className="min-w-0">
-        <div className="truncate font-mono font-medium" title={r.name}>{r.name}</div>
-        <div className="truncate text-[10px] text-muted-foreground" title={r.badge}>
-          {r.badge}{r.overridden && " · overridden by env"}
-        </div>
+    <li className={cn("group grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto] items-start gap-3 px-2 py-1.5 hover:bg-muted/40", r.overridden && "opacity-50")}>
+      <div className="min-w-0 space-y-0.5">
+        <div className="truncate font-mono font-medium select-text" title={r.name}>{r.name}</div>
+        <SourceChip badge={r.badge} />
+        {r.overridden && <div className="text-[10px] text-muted-foreground">overridden by env</div>}
       </div>
       <div className="min-w-0 font-mono break-all whitespace-pre-wrap select-text">{value}</div>
       <div className="flex items-center gap-1">

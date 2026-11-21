@@ -18,7 +18,7 @@ export function commonColumns<T extends KObject>() {
   const c = createColumnHelper<T>();
   return {
     name: c.accessor((o) => o.metadata.name, {
-      id: "name", header: "Name", enableHiding: false,
+      id: "name", header: "Name", enableHiding: false, size: 280,
       cell: (i) => <span className="font-medium">{i.getValue()}</span>,
     }) as ColumnDef<T, any>,
     namespace: c.accessor((o) => o.metadata.namespace ?? "", {

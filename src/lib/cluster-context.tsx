@@ -7,7 +7,8 @@ export type ClusterCtx = {
   context: string;
   readOnly: boolean;
   openEditor: (t: EditorTarget) => void;
-  confirmDelete: (obj: ObjRef) => void;
+  /** Confirm + delete one object or many (bulk). */
+  confirmDelete: (obj: ObjRef | ObjRef[]) => void;
   /** Open a logs tab in the dock for a pod (optionally a specific container). */
   openLogs: (pod: KObject, container?: string) => void;
   /** Open an interactive shell tab (blocked in Rust when read-only). */

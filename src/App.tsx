@@ -42,7 +42,7 @@ export default function App() {
   const [connectError, setConnectError] = useState<string>();
   const [cluster, setCluster] = useState<ClusterInfo>();
   const [editorTarget, setEditorTarget] = useState<EditorTarget>();
-  const [deleteTarget, setDeleteTarget] = useState<ObjRef>();
+  const [deleteTarget, setDeleteTarget] = useState<ObjRef[]>();
   // T17: bottom dock
   const [dockTabs, setDockTabs] = useState<DockTab[]>([]);
   // T27: command palette + shortcuts
@@ -134,8 +134,20 @@ export default function App() {
   }
 
   useEffect(() => {
-    catalog.load().then(setSaved).catch((e) => setConnectError(`Could not load saved clusters: ${e}`));
+    catalog.load().then((list) => {
+      setSaved(list);
+      // reopen the cluster that was active when the app was last closed
+      let last: string | null = null;
+      try { last = localStorage.getItem("lastCluster"); } catch { /* ignore */ }
+      const c = last && list.find((x) => x.context === last);
+      if (c) selectSaved(c);
+    }).catch((e) => setConnectError(`Could not load saved clusters: ${e}`));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  useEffect(() => {
+    if (!cluster) return;
+    try { localStorage.setItem("lastCluster", cluster.context); } catch { /* ignore */ }
+  }, [cluster]);
 
   function updateSaved(next: SavedCluster[]) {
     setSaved(next);
@@ -338,7 +350,7 @@ export default function App() {
             {cluster && (VIEWS[active] || activeCrd) ? (
               <ClusterContext.Provider value={{
                 context: cluster.context, readOnly,
-                openEditor: setEditorTarget, confirmDelete: setDeleteTarget, openLogs, openShell,
+                openEditor: setEditorTarget, confirmDelete: (o) => setDeleteTarget(Array.isArray(o) ? o : [o]), openLogs, openShell,
                 focusUid, clearFocus: () => setFocusUid(undefined),
               }}>
                 {(() => {
@@ -408,7 +420,7 @@ export default function App() {
       {cluster && (
         <>
           <YamlEditor context={cluster.context} target={editorTarget} readOnly={readOnly} onClose={() => setEditorTarget(undefined)} />
-          <DeleteDialog context={cluster.context} obj={deleteTarget} onClose={() => setDeleteTarget(undefined)} />
+          <DeleteDialog context={cluster.context} objs={deleteTarget} onClose={() => setDeleteTarget(undefined)} />
         </>
       )}
     </TooltipProvider>
