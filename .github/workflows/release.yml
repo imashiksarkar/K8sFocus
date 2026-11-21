@@ -1,59 +1,88 @@
 name: Release
 
-# Manual. Builds all platforms, signs updater artifacts, and creates a DRAFT GitHub release
-# (tag v<version from tauri.conf.json>) with installers + latest.json for the in-app updater.
-# Review the draft on GitHub and click "Publish" — only published releases are seen by the updater.
+# Triggered automatically when you PUBLISH a GitHub Release.
+# Workflow:
+#   1. Create a new Release on GitHub (tag it v<version>, e.g. v0.2.0).
+#   2. This workflow fires, builds installers for all platforms, signs the
+#      updater artifacts, and uploads them to that same release.
+#   3. The in-app auto-updater reads latest.json from the latest published release.
 #
 # Required repo secrets:
 #   TAURI_SIGNING_PRIVATE_KEY           contents of ~/.tauri/k8sfocus.key
-#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  its password (may be empty)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  its password (may be empty string)
+#
+# Note: The release tag MUST match the version in src-tauri/tauri.conf.json
+# (e.g. tag v0.2.0  → "version": "0.2.0" in tauri.conf.json).
 on:
-  workflow_dispatch:
-    inputs:
-      notes:
-        description: "Release notes (shown in the in-app update dialog)"
-        type: string
-        default: "See the assets below to download K8sFocus."
+  release:
+    types: [published]
 
 permissions:
-  contents: write
+  contents: write  # needed to upload assets to the release
 
 jobs:
+  # ── Preflight checks ────────────────────────────────────────────────────────
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Updater public key configured
         run: |
           if grep -q REPLACE_WITH_UPDATER_PUBLIC_KEY src-tauri/tauri.conf.json; then
             echo "::error::Set plugins.updater.pubkey in src-tauri/tauri.conf.json first (see README → Releasing)."
             exit 1
           fi
+
       - name: Signing key secret present
         env:
           KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
-          if [ -z "$KEY" ]; then echo "::error::Missing secret TAURI_SIGNING_PRIVATE_KEY"; exit 1; fi
+          if [ -z "$KEY" ]; then
+            echo "::error::Missing secret TAURI_SIGNING_PRIVATE_KEY"
+            exit 1
+          fi
 
-  release:
+      - name: Version matches release tag
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          # Strip leading 'v'
+          TAG_VER="${TAG#v}"
+          CONF_VER=$(jq -r '.version' src-tauri/tauri.conf.json)
+          if [ "$TAG_VER" != "$CONF_VER" ]; then
+            echo "::error::Release tag ($TAG) does not match tauri.conf.json version ($CONF_VER). Update the version before releasing."
+            exit 1
+          fi
+
+  # ── Build matrix ────────────────────────────────────────────────────────────
+  build:
     needs: check
     strategy:
       fail-fast: false
       matrix:
         include:
+          # macOS Apple Silicon
           - os: macos-latest
             args: --target aarch64-apple-darwin
             target: aarch64-apple-darwin
+
+          # macOS Intel
           - os: macos-latest
             args: --target x86_64-apple-darwin
             target: x86_64-apple-darwin
+
+          # Linux x64
           - os: ubuntu-22.04
             args: ""
             target: ""
+
+          # Windows x64
           - os: windows-latest
             args: ""
             target: ""
+
     runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -61,28 +90,36 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf build-essential libssl-dev
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev \
+            patchelf build-essential libssl-dev
 
       - uses: oven-sh/setup-bun@v2
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
           key: release-${{ matrix.os }}-${{ matrix.target }}
+
       - run: bun install --frozen-lockfile
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build & upload to release
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: v__VERSION__
-          releaseName: K8sFocus v__VERSION__
-          releaseBody: ${{ inputs.notes }}
-          releaseDraft: true
-          prerelease: false
+          # Use the tag from the published release (e.g. "v0.2.0")
+          tagName: ${{ github.event.release.tag_name }}
+          releaseName: ${{ github.event.release.name }}
+          releaseBody: ${{ github.event.release.body }}
+          # Upload to the existing release (not a new draft)
+          releaseDraft: false
+          prerelease: ${{ github.event.release.prerelease }}
           tauriScript: bun run tauri
           args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
