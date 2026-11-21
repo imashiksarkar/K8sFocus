@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 docs/
+
+# Claude settings
+.claude.settings.json
+.claude.settings.json.off
