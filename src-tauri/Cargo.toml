@@ -1,6 +1,6 @@
 [package]
 name = "k8sfocus"
-version = "0.1.0"
+version = "1.0.0"
 description = "K8sFocus — a desktop Kubernetes client"
 authors = ["Ashik Sarkar"]
 edition = "2024"
