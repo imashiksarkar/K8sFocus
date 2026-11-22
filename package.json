@@ -1,7 +1,7 @@
 {
   "name": "k8sfocus",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "K8sFocus — a desktop Kubernetes client",
   "author": {
     "name": "Ashik Sarkar <ashiksarkar.s18@gmail.com>",
