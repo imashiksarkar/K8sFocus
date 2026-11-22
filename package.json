@@ -2,6 +2,28 @@
   "name": "k8sfocus",
   "private": true,
   "version": "0.1.0",
+  "description": "K8sFocus — a desktop Kubernetes client",
+  "author": {
+    "name": "Ashik Sarkar <ashiksarkar.s18@gmail.com>",
+    "url": "https://github.com/imashiksarkar"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/imashiksarkar/K8sFocus#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imashiksarkar/K8sFocus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/imashiksarkar/K8sFocus/issues"
+  },
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "desktop",
+    "tauri",
+    "lens",
+    "devops"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "K8sFocus — a desktop Kubernetes client"
 authors = ["Ashik Sarkar"]
 edition = "2024"
+license = "MIT"
+repository = "https://github.com/imashiksarkar/K8sFocus"
+homepage = "https://github.com/imashiksarkar/K8sFocus"
 default-run = "K8sFocus"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
